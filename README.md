@@ -4,10 +4,11 @@
 
 ## Description
 
-Elbbarcs is a single-player crossword-style game where you must make valid, connected words on a board given a set of
-letter tiles. Your opponent uses a very simple but effective strategy: play the highest possible scoring move each turn.
-Your goal is to beat the opponent's brute-force strategy with your own. While you are given a 'Hint' button that *also*
-allows you to find the highest scoring move, the challenge is to be able to beat the opponent by yourself!
+Elbbarcs is a single-player crossword-style game where you must make valid, connected words on a board with the random
+tiles that you draw. Your opponent uses a very simple but effective strategy: play the highest possible scoring move
+each turn with the tiles it has. Your goal is to beat the opponent's brute-force strategy with your own. While you are
+given a 'Hint' button that *also* allows you to find the highest scoring move, the challenge is to be able to beat the
+opponent by yourself!
 
 <details>
 <summary><h3> FAQ </h3></summary>
@@ -24,7 +25,8 @@ While the computer's strategy is very powerful, it has the following shortcoming
 3. **It has no foresight**. It will not save valuable letters for the future and it does not rearrange its letters to
    make future 'bingo' moves.
 
-All of these disadvantages are things that a committed player can exploit.
+All of these disadvantages are things that a committed player can exploit. Finally, there is a counter on the right hand
+side of the game for each unplayed tile, which might also prove useful.
 
 ### Does the opponent have a rack of tiles, just like I do?
 Yes. It won't 'magically' play tiles out of nowhere. If it puts an 'S' after your word, it's because it actually drew
@@ -64,12 +66,13 @@ The game's dictionary of words is generated using a *Directed Acyclic Word Graph
 This data structure is similar to a trie but much more memory efficient. Click
 [here](https://en.wikipedia.org/wiki/Deterministic_acyclic_finite_state_automaton) to read more about it.
 
-While the *DAWG* *could* be constructed each time the game starts, the DAWG has instead been pre-constructed once, and
-then serialized into a binary file format. The game then deserializes it when launching, which results in a faster
-construction time (around 9x faster), thus leading to faster load times.
+While the *DAWG* *could* be constructed each time the game starts, it has instead been pre-constructed and then
+serialized into a binary file format. The game then deserializes it when launching. This results in much faster
+construction time (around 9x faster), and thus faster load times.
 
-The solver, which finds the highest scoring move, uses a fast backtracking algorithm[^2] that traverses the *DAWG* with
-a given set of letters, finds all possible moves, calculates the score for each one, and saves the max scoring one.
+The solver, which finds the highest scoring move, uses a fast backtracking algorithm[^2] that essentially traverses the
+*DAWG* with a given set of playable letters and a board state. It then finds all possible moves and a corresponding
+score for each move, and only saves a move if its score value is higher than the current maximum.
 
 The game has been compiled into WebAssembly for the web using [Emscripten](https://emscripten.org/).
 </details>
