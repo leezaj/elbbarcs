@@ -1,6 +1,6 @@
 # Elbbarcs
 
-Crossword-style game written in Modern C++23 using SDL2.
+### [Play it in your web browser!](https://leezaj.github.io/elbbarcs/)
 
 ## Description
 
@@ -41,8 +41,8 @@ Elbbarcs has the following requirements and dependencies:
 Elbbarcs also uses [Glaze](https://github.com/stephenberry/glaze) for serialization, but this will automatically be
 fetched with CMake.
 
-1. Clone the repository.
-2. Create a `build` folder and change directories to it (i.e. `mkdir -p build && cd build`).
+1. Clone the repository with `git clone https://github.com/leezaj/elbbarcs.git`
+2. In the newly made `elbbarcs` folder, create a `build` folder and change directories to it
 3. Run `cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4`. This will also pull Glaze due to CMake's *FetchContent*
    feature.
 4. The binary will be installed in the `bin` folder in the root directory. Run `../bin/elbbarcs` from inside `build` to

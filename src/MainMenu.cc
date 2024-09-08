@@ -85,7 +85,7 @@ MainMenu::MainMenu(SDL_Renderer *rend, Mouse& mouse, const AssetPool &assets, Ga
         manager.push(&(*playing_state_));
       },
       // "Credits" button action
-      [] { SDL_OpenURL("https://google.com"); }};
+      [] { SDL_OpenURL("https://github.com/leezaj/elbbarcs#credits"); }};
   for (size_t i = 0; i < NUM_BUTTONS; ++i) {
     Text temp{rend, assets.get(FontType::MOULDY_CHEESE), kFontSize, constants::kFontColorBrown, texts[i],  {}};
     temp.center_text(kBoardBgDest.x, kBoardBgDest.w, kOptionBegin + kOptionGap * static_cast<int>(i));
