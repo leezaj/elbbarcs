@@ -70,7 +70,7 @@ constexpr int kFontSize = 50, kOptionBegin = 425, kOptionGap = 110, kAngleRotate
 MainMenu::MainMenu(SDL_Renderer *rend, Mouse& mouse, const AssetPool &assets, GameStateManager& manager, ButtonMaker& button_maker):
   GameState{rend, mouse},
   logo_{assets.get(TextureType::LOGO), kLogoRect},
-  background_{assets.get(TextureType::SCRABBLE_BOARD)}
+  background_{assets.get(TextureType::BOARD)}
 {
   std::array<const char *, NUM_BUTTONS> texts{"Play", "Credits"};
   std::array<std::function<void()>, NUM_BUTTONS> callbacks{

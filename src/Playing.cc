@@ -50,7 +50,7 @@ constexpr int kMaxSkipsInARow = 6; // the 'six-zero  rule'
 
 Playing::Playing(SDL_Renderer *rend, Mouse& mouse, const AssetPool& assets, GameStateManager& manager, ButtonMaker& button_maker) :
   GameState{rend, mouse},
-  background_{assets.get(TextureType::SCRABBLE_BOARD)},
+  background_{assets.get(TextureType::BOARD)},
   tile_bag_{rend},
   blank_replacer_(rend, mouse, manager, board_, *this),
   board_{rend, blank_replacer_},

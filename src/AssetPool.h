@@ -8,11 +8,11 @@
 #include <vector>
 
 enum class TextureType : uint8_t {
+  BOARD,
   DIALOG_BOX,
   ENTER_BUTTON,
   LOGO,
   RECALL_BUTTON,
-  SCRABBLE_BOARD,
   SHUFFLE_BUTTON,
   X_BUTTON,
 };
