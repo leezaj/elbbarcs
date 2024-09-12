@@ -2,6 +2,8 @@
 
 ### [Play it in your web browser!](https://leezaj.github.io/elbbarcs/)
 
+![Game Screenshot](screenshot.png?raw=true "Game Screenshot")
+
 ## Description
 
 Elbbarcs is a single-player crossword-style game where you must make valid, connected words on a board with the random
