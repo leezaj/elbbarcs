@@ -79,7 +79,7 @@ Playing::Playing(SDL_Renderer *rend, Mouse& mouse, const AssetPool& assets, Game
   game_over_{rend, mouse, manager, *this, assets, button_maker},
   counter_{rend, assets, tile_bag_.tiles_view()}
 {
-  std::ignore = glz::read_file_binary(dictionary_, kSerializedDictPath.c_str(), std::string{});
+  std::ignore = glz::read_file_beve(dictionary_, kSerializedDictPath.c_str(), std::string{});
   enter_.disable();
   tile_bag_.shuffle();
   fill_player_rack();
