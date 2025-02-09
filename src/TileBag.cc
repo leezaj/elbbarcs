@@ -42,7 +42,7 @@ void TileBag::load_tiles(SDL_Renderer* renderer) {
   for(const auto& file: std::filesystem::directory_iterator(tiles_path)) {
     std::string_view filename{file.path().stem().c_str()};
     // if it's a blank tile, the filename will be something like 'blank_tile.png'. otherwise it will be one letter only
-    const auto *const val = std::ranges::find(kTileVals, filename.size() == 1 ? filename.front() : constants::kTileBlankChar, &TileInfo::letter);
+    const auto val = std::ranges::find(kTileVals, filename.size() == 1 ? filename.front() : constants::kTileBlankChar, &TileInfo::letter);
     assert(val != kTileVals.end());
     Surface temp{IMG_Load(file.path().c_str())};
     for (auto i = 0; i < val->frequency; ++i) {

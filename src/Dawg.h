@@ -31,9 +31,9 @@ class Dawg final {
 public:
   struct Edge final {
     char letter;
-    // We use uint32_t instead of size_t for space efficiency and because
-    // we know that our dictionary is small enough to not overflow (it won't have more than 0xFFFFFFFF nodes).
-    std::uint32_t next; // offset from the root node.
+    // We use uint16_t instead of size_t for space efficiency and because
+    // we know that our dictionary is small enough to not overflow (it won't have more than 0xFFFF nodes).
+    std::uint16_t next; // offset from the root node.
   };
   struct Node final {
     /**
@@ -83,7 +83,7 @@ public:
 
   [[nodiscard]] const Node* root() const {return all_nodes_.data();}
 
-  [[nodiscard]] const Node* node_at_index(std::uint32_t index) const {
+  [[nodiscard]] const Node* node_at_index(std::uint16_t index) const {
     assert(index <= all_nodes_.size() - 1);
     return &all_nodes_[index];
   }
@@ -92,15 +92,15 @@ private:
   // Needed for serialization
   friend class glz::meta<Dawg>;
 
-  using StateToIndex = std::unordered_map<std::string, std::uint32_t>;
+  using StateToIndex = std::unordered_map<std::string, std::uint16_t>;
 
   Dawg(const std::filesystem::path &dict, StateToIndex all_states);
 
-  std::uint32_t get_last_state_idx(std::string_view common_prefix);
+  std::uint16_t get_last_state_idx(std::string_view common_prefix);
 
-  void replace_or_register(std::uint32_t last_state_idx, StateToIndex &all_states);
+  void replace_or_register(std::uint16_t last_state_idx, StateToIndex &all_states);
 
-  void add_suffix(std::uint32_t state_idx, std::string_view suffix);
+  void add_suffix(std::uint16_t state_idx, std::string_view suffix);
 
   std::vector<Node> all_nodes_;
 };

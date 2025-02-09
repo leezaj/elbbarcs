@@ -51,7 +51,7 @@ void Rack::render(SDL_Renderer* renderer) const noexcept {
 }
 
 void Rack::put(Tile tile) {
-  auto *gap = get_first_gap(tiles_);
+  auto gap = get_first_gap(tiles_);
   tile.move(constants::kRackTilePositions[index_of(tiles_, gap)]);
   *gap = tile;
 }
@@ -127,7 +127,7 @@ Tile Rack::take_tile(std::uint32_t idx) {
 }
 
 Tile Rack::take_tile(char letter) {
-  auto *it = std::ranges::find(tiles_, letter, &Tile::letter);
+  auto it = std::ranges::find(tiles_, letter, &Tile::letter);
   assert(it!=tiles_.end());
   return take_tile(static_cast<uint32_t>(std::distance(tiles_.begin(), it)));
 }

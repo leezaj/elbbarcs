@@ -28,15 +28,15 @@ Dawg::Dawg(const std::filesystem::path &dict, StateToIndex all_states):
   replace_or_register(0, all_states);
 }
 
-std::uint32_t Dawg::get_last_state_idx(std::string_view common_prefix) {
-  std::uint32_t current = 0;
+std::uint16_t Dawg::get_last_state_idx(std::string_view common_prefix) {
+  std::uint16_t current = 0;
   for (char ch : common_prefix){
     current = std::ranges::find(all_nodes_[current].edges, ch, &Edge::letter)->next;
   }
   return current;
 }
 
-void Dawg::replace_or_register(std::uint32_t last_state_idx, StateToIndex& all_states) {
+void Dawg::replace_or_register(std::uint16_t last_state_idx, StateToIndex& all_states) {
   auto next_idx = all_nodes_[last_state_idx].edges.rbegin()->next;
   if (not all_nodes_[next_idx].edges.empty()) {
     replace_or_register(next_idx, all_states);
@@ -50,9 +50,9 @@ void Dawg::replace_or_register(std::uint32_t last_state_idx, StateToIndex& all_s
   }
 }
 
-void Dawg::add_suffix(std::uint32_t state_idx, std::string_view suffix) {
+void Dawg::add_suffix(std::uint16_t state_idx, std::string_view suffix) {
   for(char ch: suffix) {
-    auto new_idx = static_cast<std::uint32_t>(all_nodes_.size());
+    auto new_idx = static_cast<std::uint16_t>(all_nodes_.size());
     all_nodes_[state_idx].edges.emplace_back(ch, new_idx);
     state_idx = new_idx;
     all_nodes_.emplace_back(/* new node*/);
