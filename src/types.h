@@ -34,6 +34,7 @@ using Renderer = std::unique_ptr<SDL_Renderer, Wrapper<SDL_DestroyRenderer>>;
 using Surface = std::unique_ptr<SDL_Surface, Wrapper<SDL_FreeSurface>>;
 using Texture = std::unique_ptr<SDL_Texture, Wrapper<SDL_DestroyTexture>>;
 using Window = std::unique_ptr<SDL_Window, Wrapper<SDL_DestroyWindow>>;
+using RWops = std::unique_ptr<SDL_RWops, Wrapper<SDL_RWclose>>;
 
 using GameStateManager = std::stack<GameState*, std::vector<GameState*>>;
 

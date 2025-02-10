@@ -2,10 +2,12 @@
 #define ASSETPOOL_H
 
 #include "types.h"
+#include <concepts>
+#include "battery/embed.hpp"
 #include <SDL2/SDL_image.h>
-#include <filesystem>
 #include <utility>
 #include <vector>
+#include "utility.h"
 
 enum class TextureType : uint8_t {
   BOARD,
@@ -22,12 +24,6 @@ enum class FontType : uint8_t {
   MOULDY_CHEESE,
 };
 
-template <typename T, typename... U>
-concept IsAnyOf = (std::same_as<T, U> || ...);
-
-template <typename T>
-concept AssetType = IsAnyOf<T, FontType, TextureType>;
-
 /**
  * @class AssetPool
  * @brief A class that owns different assets such as textures and fonts.
@@ -35,14 +31,39 @@ concept AssetType = IsAnyOf<T, FontType, TextureType>;
  */
 class AssetPool final {
 
+private:
+  using File = b::EmbedInternal::EmbeddedFile;
+
+  static constexpr Font to_font(const File& file) {
+    SDL_RWops* buffer = SDL_RWFromConstMem(file.data(), static_cast<int>(file.size()));
+    return Font{TTF_OpenFontRW(buffer, 1, 0)}; // buffer freed by '1' parameter
+  }
+
+  static constexpr Texture to_texture(SDL_Renderer* renderer, const File& file) {
+    SDL_RWops* buffer = SDL_RWFromConstMem(file.data(), static_cast<int>(file.size()));
+    return Texture{IMG_LoadTexture_RW(renderer, buffer, 1)}; // buffer freed by '1' parameter
+  }
+
 public:
-  explicit AssetPool(SDL_Renderer *renderer);
+  constexpr AssetPool(SDL_Renderer* renderer) : 
+    textures_{utility::map(std::to_array({
+      b::embed<"assets/textures/board.png">(),
+      b::embed<"assets/textures/dialog_box.png">(),
+      b::embed<"assets/textures/enter_beige.png">(),
+      b::embed<"assets/textures/logo.png">(),
+      b::embed<"assets/textures/recall_beige.png">(),
+      b::embed<"assets/textures/shuffle_beige.png">(),
+      b::embed<"assets/textures/x_beige.png">()}), std::bind_front(AssetPool::to_texture, renderer))},
+    fonts_{utility::map(std::to_array({
+      b::embed<"assets/fonts/LowballNeueRegular-rglJB.ttf">(),
+      b::embed<"assets/fonts/MouldyCheeseRegular-WyMWG.ttf">()}), AssetPool::to_font)}
+  {}
 
   /**
    * @brief Returns a non-owning raw pointer corresponding to the type provided
    */
-  template <AssetType T> 
-  auto *get(T type) const {
+  template <typename T> requires std::same_as<T, TextureType> || std::same_as<T, FontType>
+  constexpr auto *get(T type) const {
     const auto getter = [type](const auto &container) { return container[std::to_underlying(type)].get(); };
     if constexpr (std::same_as<T, TextureType>) {
       return getter(textures_);
@@ -51,13 +72,7 @@ public:
     }
   }
 
-  static std::filesystem::path assets_path() {
-    return std::filesystem::current_path().parent_path() / "assets";
-  };
-
 private:
-  inline static std::filesystem::path fonts_path = assets_path()/"fonts"; 
-  inline static std::filesystem::path textures_path = assets_path()/"textures";
   std::vector<Texture> textures_;
   std::vector<Font> fonts_;
 };

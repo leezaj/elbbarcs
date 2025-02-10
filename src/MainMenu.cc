@@ -72,7 +72,7 @@ MainMenu::MainMenu(SDL_Renderer *rend, Mouse& mouse, const AssetPool &assets, Ga
   logo_{assets.get(TextureType::LOGO), kLogoRect},
   background_{assets.get(TextureType::BOARD)}
 {
-  std::array<const char *, NUM_BUTTONS> texts{"Play", "Credits"};
+  std::array<std::string_view, NUM_BUTTONS> texts{"Play", "Credits"};
   std::array<std::function<void()>, NUM_BUTTONS> callbacks{
       // "Play" button action
       [&, rend, this]() {

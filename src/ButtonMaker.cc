@@ -1,14 +1,13 @@
 #include "ButtonMaker.h"
 #include "constants.h"
 
-namespace {
-const auto btn_path = AssetPool::assets_path()/"templates"/"wood_button.png";
-} // namespace
-
 ButtonMaker::ButtonMaker(const AssetPool& assets):
-  font_{assets.get(FontType::MOULDY_CHEESE)},
-  wood_button_{IMG_Load(btn_path.c_str())}
-{}
+  font_{assets.get(FontType::MOULDY_CHEESE)}
+{
+  auto btn = b::embed<"assets/templates/wood_button.png">();
+  SDL_RWops* buffer = SDL_RWFromConstMem(btn.data(), static_cast<int>(btn.size()));
+  wood_button_ = Surface{IMG_Load_RW(buffer, 1)};
+}
 
 Button ButtonMaker::make_text_button(SDL_Renderer *rend, std::string_view text,
                                      const SDL_Rect &position,

@@ -1,4 +1,4 @@
-#include "AssetPool.h"
+#include "battery/embed.hpp"
 #include "BlankTileReplacer.h"
 #include "Board.h"
 #include "Playing.h"
@@ -7,25 +7,50 @@
 #include <cassert>
 
 namespace {
-
-const auto blanks_path = AssetPool::assets_path()/"blank-tiles";
-
-} //namespace
+struct BlankTileInfo {
+  b::EmbedInternal::EmbeddedFile file;
+  char letter;
+};
+} // namespace
 
 void BlankTileReplacer::load_tiles(SDL_Renderer* renderer) {
-  std::vector<std::filesystem::path> files{std::filesystem::directory_iterator(blanks_path), {}};
-  std::ranges::sort(files);
-  assert(files.size() == constants::kNumOfTiles-1);
-  std::vector<Texture> textures;
-  textures.reserve(constants::kNumOfTiles-1);
+  std::array<BlankTileInfo, constants::kNumOfTiles-1> blank_infos{{
+      {b::embed<"assets/blank-tiles/a.png">(),'a'},
+      {b::embed<"assets/blank-tiles/b.png">(),'b'},
+      {b::embed<"assets/blank-tiles/c.png">(),'c'},
+      {b::embed<"assets/blank-tiles/d.png">(),'d'},
+      {b::embed<"assets/blank-tiles/e.png">(),'e'},
+      {b::embed<"assets/blank-tiles/f.png">(),'f'},
+      {b::embed<"assets/blank-tiles/g.png">(),'g'},
+      {b::embed<"assets/blank-tiles/h.png">(),'h'},
+      {b::embed<"assets/blank-tiles/i.png">(),'i'},
+      {b::embed<"assets/blank-tiles/j.png">(),'j'},
+      {b::embed<"assets/blank-tiles/k.png">(),'k'},
+      {b::embed<"assets/blank-tiles/l.png">(),'l'},
+      {b::embed<"assets/blank-tiles/m.png">(),'m'},
+      {b::embed<"assets/blank-tiles/n.png">(),'n'},
+      {b::embed<"assets/blank-tiles/o.png">(),'o'},
+      {b::embed<"assets/blank-tiles/p.png">(),'p'},
+      {b::embed<"assets/blank-tiles/q.png">(),'q'},
+      {b::embed<"assets/blank-tiles/r.png">(),'r'},
+      {b::embed<"assets/blank-tiles/s.png">(),'s'},
+      {b::embed<"assets/blank-tiles/t.png">(),'t'},
+      {b::embed<"assets/blank-tiles/u.png">(),'u'},
+      {b::embed<"assets/blank-tiles/v.png">(),'v'},
+      {b::embed<"assets/blank-tiles/w.png">(),'w'},
+      {b::embed<"assets/blank-tiles/x.png">(),'x'},
+      {b::embed<"assets/blank-tiles/y.png">(),'y'},
+      {b::embed<"assets/blank-tiles/z.png">(),'z'},
+  }};
+  auto textures = utility::map(blank_infos, [renderer](const BlankTileInfo& info) -> Texture {
+    SDL_RWops *buffer = SDL_RWFromConstMem(info.file.data(), static_cast<int>(info.file.size()));
+    return Texture{IMG_LoadTexture_RW(renderer, buffer, 1)};
+  });
   std::vector<Tile> tiles;
   tiles.reserve(constants::kNumOfTiles-1);
-  for(const auto& file: files){
-    std::string_view filename{file.stem().c_str()};
-    assert(filename.size() == 1);
-    textures.emplace_back(IMG_LoadTexture(renderer, file.c_str()));
-    tiles.emplace_back(textures.back().get(), SDL_Rect{0, 0, constants::kTileWidth, constants::kTileHeight}, filename.front(), 0);
-  }
+  std::ranges::transform(blank_infos, textures, std::back_inserter(tiles), [](const BlankTileInfo& i, const Texture& t){
+    return Tile(t.get(), SDL_Rect{.x=0, .y=0, .w=constants::kTileWidth, .h=constants::kTileHeight}, i.letter, 0);
+  });
   blanks_textures_ = std::move(textures);
   blanks_tiles_ = std::move(tiles);
 }

@@ -47,16 +47,16 @@ Elbbarcs has the following requirements and dependencies:
 - CMake 3.5 or newer
 - SDL2, SDL2_ttf, SDL2_image and SDL2_gfx development headers
 - Boost headers (needed for `boost::hash_combine`)
+- [Glaze](https://github.com/stephenberry/glaze) for serializing the dictionary structure
+- [battery-embed](https://github.com/batterycenter/embed) for embedding assets directly into the game
 
-Elbbarcs also uses [Glaze](https://github.com/stephenberry/glaze) for serialization, but this will automatically be
+Elbbarcs also uses  for serialization, but this will automatically be
 fetched with CMake.
 
 1. Clone the repository with `git clone https://github.com/leezaj/elbbarcs.git`
-2. In the newly made `elbbarcs` folder, create a `build` folder and change directories to it
-3. Run `cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4`. This will also pull Glaze due to CMake's *FetchContent*
-   feature.
-4. The binary will be installed in the `bin` folder in the root directory. Run `../bin/elbbarcs` from inside `build` to
-   launch the game.
+3. Run `cmake -DCMAKE_BUILD_TYPE=Release -B ./build`. This will pull Glaze and battery-embed due to CMake's
+   *FetchContent* feature. Then run `` cmake --build ./build -j `nproc` ``
+4. The binary will be installed in the `bin` folder. 
 
 Please note that building has only been tested on Linux so far, and has not been tested for other operating systems.
 </details>
@@ -82,7 +82,7 @@ The game has been compiled into WebAssembly for the web using [Emscripten](https
 ## To-Do
 
 - [ ] Add fullscreen support
-- [ ] Embed the game's assets directly into the source code to minimize file loads
+- [x] Embed the game's assets directly into the source code to minimize file loads
 - [ ] Add sound
 - [ ] Show definitions of words played
 - [ ] If the player tries to make an invalid word, specify which word(s) failed

@@ -2,6 +2,7 @@
 #include "Scoreboard.h"
 #include <SDL_render.h>
 #include <sstream>
+#include <iomanip>
 
 constexpr SDL_Point kHumanScoreLocation{.x = 900, .y = 150};
 constexpr SDL_Point kComputerScoreLocation{.x = 1040, .y = 150};

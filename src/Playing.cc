@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cassert>
 #include <glaze/glaze.hpp>
+#include "battery/embed.hpp"
 
 constexpr SDL_Rect kShuffleButtonRect{
   .x = constants::kRackTilePositions.front().x - constants::kRackButtonGap, 
@@ -32,8 +33,6 @@ constexpr SDL_Rect kRecallButtonRect{
   .w = 69,
   .h = 47
 };
-
-static const auto kSerializedDictPath = (AssetPool::assets_path()/"dict.bin");
 
 constexpr SDL_Rect kRestartButtonRect{.x = 1023, .y = 745, .w = 120, .h = 64};
 
@@ -79,7 +78,7 @@ Playing::Playing(SDL_Renderer *rend, Mouse& mouse, const AssetPool& assets, Game
   game_over_{rend, mouse, manager, *this, assets, button_maker},
   counter_{rend, assets, tile_bag_.tiles_view()}
 {
-  std::ignore = glz::read_file_beve_untagged(dictionary_, kSerializedDictPath.c_str(), std::string{});
+  std::ignore = glz::read_binary_untagged(dictionary_, b::embed<"assets/dict.bin">().vec());
   enter_.disable();
   tile_bag_.shuffle();
   fill_player_rack();

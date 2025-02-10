@@ -1,56 +1,68 @@
-#include "AssetPool.h"
+#include "battery/embed.hpp"
 #include "Tile.h"
 #include "TileBag.h"
 #include "constants.h"
 #include "utility.h"
 #include <SDL2/SDL_render.h>
+#include <SDL_image.h>
 #include <algorithm>
 #include <cassert>
 #include <print>
 #include <vector>
 
 namespace {
-
-const auto tiles_path = AssetPool::assets_path() / "tiles";
-
 struct TileInfo {
+  b::EmbedInternal::EmbeddedFile file;
   char letter;
   std::uint8_t frequency;
   std::uint8_t value;
 };
-
-constexpr std::array<TileInfo, constants::kNumOfTiles> kTileVals{{
-    {constants::kTileBlankChar, 2, 0}, {'a', 9, 1}, {'b', 2, 3},
-    {'c', 2, 3}, {'d', 4, 2}, {'e', 12, 1},
-    {'f', 2, 4}, {'g', 3, 2}, {'h', 2, 4},
-    {'i', 9, 1}, {'j', 1, 8}, {'k', 1, 5},
-    {'l', 4, 1}, {'m', 2, 3}, {'n', 6, 1},
-    {'o', 8, 1}, {'p', 2, 3}, {'q', 1, 10},
-    {'r', 6, 1}, {'s', 4, 1}, {'t', 6, 1},
-    {'u', 4, 1}, {'v', 2, 4}, {'w', 2, 4},
-    {'x', 1, 8}, {'y', 2, 4}, {'z', 1, 10},
-}};
-
 } //namespace
 
 
 void TileBag::load_tiles(SDL_Renderer* renderer) {
+  std::array<TileInfo, constants::kNumOfTiles> tile_infos{{
+      {b::embed<"assets/tiles/a.png">(), 'a', 9, 1},
+      {b::embed<"assets/tiles/b.png">(), 'b', 2, 3},
+      {b::embed<"assets/tiles/blank_tile.png">(), constants::kTileBlankChar, 2, 0}, 
+      {b::embed<"assets/tiles/c.png">(),'c', 2, 3},
+      {b::embed<"assets/tiles/d.png">(),'d', 4, 2},
+      {b::embed<"assets/tiles/e.png">(),'e', 12, 1},
+      {b::embed<"assets/tiles/f.png">(),'f', 2, 4},
+      {b::embed<"assets/tiles/g.png">(),'g', 3, 2},
+      {b::embed<"assets/tiles/h.png">(),'h', 2, 4},
+      {b::embed<"assets/tiles/i.png">(),'i', 9, 1},
+      {b::embed<"assets/tiles/j.png">(),'j', 1, 8},
+      {b::embed<"assets/tiles/k.png">(),'k', 1, 5},
+      {b::embed<"assets/tiles/l.png">(),'l', 4, 1},
+      {b::embed<"assets/tiles/m.png">(),'m', 2, 3},
+      {b::embed<"assets/tiles/n.png">(),'n', 6, 1},
+      {b::embed<"assets/tiles/o.png">(),'o', 8, 1},
+      {b::embed<"assets/tiles/p.png">(),'p', 2, 3},
+      {b::embed<"assets/tiles/q.png">(),'q', 1, 10},
+      {b::embed<"assets/tiles/r.png">(),'r', 6, 1},
+      {b::embed<"assets/tiles/s.png">(),'s', 4, 1},
+      {b::embed<"assets/tiles/t.png">(),'t', 6, 1},
+      {b::embed<"assets/tiles/u.png">(),'u', 4, 1},
+      {b::embed<"assets/tiles/v.png">(),'v', 2, 4},
+      {b::embed<"assets/tiles/w.png">(),'w', 2, 4},
+      {b::embed<"assets/tiles/x.png">(),'x', 1, 8},
+      {b::embed<"assets/tiles/y.png">(),'y', 2, 4},
+      {b::embed<"assets/tiles/z.png">(),'z', 1, 10},
+  }};
   std::vector<Texture> textures;
   textures.reserve(constants::kBagTileAmount);
   std::vector<Tile> tiles;
   tiles.reserve(constants::kBagTileAmount);
-  for(const auto& file: std::filesystem::directory_iterator(tiles_path)) {
-    std::string_view filename{file.path().stem().c_str()};
-    // if it's a blank tile, the filename will be something like 'blank_tile.png'. otherwise it will be one letter only
-    const auto val = std::ranges::find(kTileVals, filename.size() == 1 ? filename.front() : constants::kTileBlankChar, &TileInfo::letter);
-    assert(val != kTileVals.end());
-    Surface temp{IMG_Load(file.path().c_str())};
-    for (auto i = 0; i < val->frequency; ++i) {
+  for(const auto& tile: tile_infos) {
+    RWops buffer {SDL_RWFromConstMem(tile.file.data(), static_cast<int>(tile.file.size()))};
+    Surface temp{IMG_Load_RW(buffer.get(), 0)};
+    for (auto i = 0; i < tile.frequency; ++i) {
       textures.emplace_back(SDL_CreateTextureFromSurface(renderer, temp.get()));
       tiles.emplace_back(textures.back().get(), SDL_Rect{.x = 0,
                                                          .y = 0,
                                                          .w = constants::kTileWidth,
-                                                         .h = constants::kTileHeight}, val->letter, val->value);
+                                                         .h = constants::kTileHeight}, tile.letter, tile.value);
     }
   }
   tile_textures_ = std::move(textures);
