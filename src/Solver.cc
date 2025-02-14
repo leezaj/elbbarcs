@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <numeric>
 #include <ranges>
+#include "utility.h"
 
 constexpr Row_Col kMiddleSquare = {constants::kSquareNum / 2,
                                           constants::kSquareNum / 2};
@@ -252,7 +253,7 @@ void Solver::before_part(std::vector<TileData> tiles_before, Direction dir, Row_
     // if we have the letter in our rack, put it
     if (auto it = std::ranges::find(unplayed_tiles, letter, &TileData::letter); it != unplayed_tiles.end()) {
       auto [to_play, value] = *it;
-      unplayed_tiles.erase(it);
+      std::iter_swap(unplayed_tiles.rbegin(), it); unplayed_tiles.pop_back();
       tiles_before.emplace_back(to_play, value);
       before_part(tiles_before, dir, anchor_pos, unplayed_tiles, dict_->node_at_index(index), expand_limit - 1);
       tiles_before.pop_back();
@@ -260,7 +261,7 @@ void Solver::before_part(std::vector<TileData> tiles_before, Direction dir, Row_
     }
     // try a blank for every letter in the current node's edges if we have one
     if (auto it = std::ranges::find(unplayed_tiles, constants::kTileBlankChar, &TileData::letter); it != unplayed_tiles.end()) {
-      unplayed_tiles.erase(it);
+      std::iter_swap(unplayed_tiles.rbegin(), it); unplayed_tiles.pop_back();
       tiles_before.emplace_back(letter, 0);
       before_part(tiles_before, dir, anchor_pos, unplayed_tiles, dict_->node_at_index(index), expand_limit - 1);
       tiles_before.pop_back();
@@ -296,7 +297,7 @@ void Solver::extend_after(std::vector<TileData> tiles_before, Direction dir, Row
       // if we have the letter in the node's edge in our rack, put it and backtrack
       if (auto it = std::ranges::find(unplayed_tiles,letter,&TileData::letter); it != unplayed_tiles.end()) {
         auto [rack_letter, rack_value] = *it;
-        unplayed_tiles.erase(it);
+        std::iter_swap(unplayed_tiles.rbegin(), it); unplayed_tiles.pop_back();
         tiles_before.emplace_back(rack_letter, rack_value);
         extend_after(tiles_before, dir, after(next_pos, dir), unplayed_tiles, dict_->node_at_index(index), true);
         tiles_before.pop_back();
@@ -304,7 +305,7 @@ void Solver::extend_after(std::vector<TileData> tiles_before, Direction dir, Row
       }
       // if we have a blank, try every letter in the node's edges and backtrack
       if (auto it = std::ranges::find(unplayed_tiles, constants::kTileBlankChar, &TileData::letter); it != unplayed_tiles.end()) {
-        unplayed_tiles.erase(it);
+        std::iter_swap(unplayed_tiles.rbegin(), it); unplayed_tiles.pop_back();
         tiles_before.emplace_back(letter, 0);
         extend_after(tiles_before, dir, after(next_pos, dir), unplayed_tiles, dict_->node_at_index(index), true);
         tiles_before.pop_back();
@@ -366,9 +367,7 @@ void Solver::make_cross_checks(Direction dir) {
 
 Solver::Solution Solver::get_best_move(const std::vector<Tile> &rack) {
   static constexpr std::array<Direction, 2> all_directions{ACROSS,DOWN};
-  auto tiles = rack | 
-    std::views::transform([](const Tile &tile) static { return TileData{tile.letter(), tile.value()}; }) | 
-    std::ranges::to<std::vector>();
+  std::vector<TileData> tiles = utility::map(rack, [](const Tile& t) static{ return TileData{t.letter(), t.value()}; });
   solution_.info = {};
   solution_.tiles.clear();
   current_anchors_.clear();
@@ -407,7 +406,7 @@ Solver::Solution Solver::get_best_move(const std::vector<Tile> &rack) {
         }
         auto whats_there = tiles_before | std::views::transform(&TileData::letter);
         if(const auto *node = dict_->lookup_prefix(whats_there); node != nullptr) {
-          extend_after(std::move(tiles_before),dir,anchor,tiles,node,false);
+          extend_after(std::move(tiles_before), dir, anchor, tiles, node, false);
         }
       }
     }

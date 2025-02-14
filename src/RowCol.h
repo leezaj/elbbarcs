@@ -1,6 +1,5 @@
 #include "constants.h"
 #include <SDL2/SDL_rect.h>
-#include <boost/functional/hash.hpp>
 #include <cstdint>
 struct Row_Col {
   std::int8_t row{};
@@ -19,10 +18,8 @@ struct Row_Col {
 
 template <> 
 struct std::hash<Row_Col> {
-  std::size_t operator()(const Row_Col &rc) const noexcept {
-    std::size_t ret{};
-    boost::hash_combine(ret, rc.row);
-    boost::hash_combine(ret, rc.col);
-    return ret;
+  std::size_t operator()(Row_Col rc) const noexcept {
+    static constexpr auto bit_size = std::numeric_limits<size_t>::digits;
+    return (static_cast<size_t>(rc.row) << bit_size/2) | static_cast<size_t>(rc.col);
   }
 };

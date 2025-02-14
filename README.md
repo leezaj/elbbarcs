@@ -46,7 +46,6 @@ Elbbarcs has the following requirements and dependencies:
 - A compatible C++23 compiler
 - CMake 3.5 or newer
 - SDL2, SDL2_ttf, SDL2_image and SDL2_gfx development headers
-- Boost headers (needed for `boost::hash_combine`)
 - [Glaze](https://github.com/stephenberry/glaze) for serializing the dictionary structure
 - [battery-embed](https://github.com/batterycenter/embed) for embedding assets directly into the game
 

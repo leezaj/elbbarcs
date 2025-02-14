@@ -6,7 +6,6 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_surface.h>
 #include <cassert>
-#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -34,10 +33,7 @@ bool Board::has_recently_placed_tiles() const {
 }
 
 std::vector<Row_Col> Board::placed_tile_positions() const {
-  return  recently_placed_ |
-    std::views::transform(&Tile::point) | 
-    std::views::transform(&to_row_col) |
-    std::ranges::to<std::vector>();
+  return utility::map(recently_placed_, [](const Tile& t) static { return to_row_col(t.point()); });
 }
 
 bool Board::empty() const {
