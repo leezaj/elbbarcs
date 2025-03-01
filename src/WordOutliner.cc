@@ -13,19 +13,21 @@ static constexpr std::uint32_t kFontColorRed = 0xFF0000BF;
 WordOutliner::WordOutliner(SDL_Renderer* renderer, const AssetPool& assets):
   renderer_{renderer},
   score_(renderer, assets.get(FontType::LOWBALL), kFontSize, {})
-{}
+{
+  utility::log("WordOutliner initialized");
+}
 
-void WordOutliner::outline(SDL_Point begin, SDL_Point end, int score_amount) {
+void WordOutliner::outline(SDL_Point begin, SDL_Point end, std::int32_t score_amount) {
   color_ = kFontColorBlack;
   outline_common(begin, end, score_amount);
 }
 
-void WordOutliner::outline(SDL_Point begin, SDL_Point end, int score_amount, bool is_valid) {
+void WordOutliner::outline(SDL_Point begin, SDL_Point end, std::int32_t score_amount, bool is_valid) {
   color_ = is_valid ? kFontColorGreen : kFontColorRed;
   outline_common(begin, end, score_amount);
 }
 
-void WordOutliner::outline_common(SDL_Point begin, SDL_Point end, int score_amount) {
+void WordOutliner::outline_common(SDL_Point begin, SDL_Point end, std::int32_t score_amount) {
   assert(begin.x == end.x or begin.y == end.y);
   rect_.x = begin.x;
   rect_.y = begin.y;
@@ -40,8 +42,13 @@ void WordOutliner::outline_common(SDL_Point begin, SDL_Point end, int score_amou
   score_.update(renderer_, {}, std::to_string(score_amount), begin);
   score_value_ = score_amount;
 }
+
 void WordOutliner::render() const {
-  for(std::int16_t thickness = 0; thickness<2; ++thickness) {
+  if(hidden_) {
+    return;
+  }
+  static constexpr auto max_thickness = 2;
+  for(std::int32_t thickness = 0; thickness<max_thickness; ++thickness) {
     rectangleColor(renderer_, static_cast<std::int16_t>(rect_.x + rect_.w + (thickness)),
         static_cast<std::int16_t>(rect_.y + rect_.h + (thickness)),
         static_cast<std::int16_t>(rect_.x - (thickness)),

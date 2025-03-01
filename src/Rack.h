@@ -19,15 +19,9 @@ public:
   [[nodiscard]] const Tile* tile_at_pos(SDL_Point point) noexcept;
 
   /**
-   * @brief Take a tile from the rack at the given point. The tile is released
-   * from the rack.
+   * @brief Take a tile from the rack at the given point. The tile is released from the rack.
    */
   [[nodiscard]] Tile* take_from(SDL_Point point);
-
-  /**
-   * @brief Take the first tile from the rack. The rack must not be empty.
-   */
-  [[nodiscard]] Tile take_tile();
 
   /**
    * @brief Take the ith tile from the rack. The tile must actually exist.
@@ -72,7 +66,7 @@ public:
    * @brief Assumes that a tile taken from the rack, A, is at mouse_point. 
    * If mouse_point collides with an existing tile, B, then the
    * B will be swapped to where A was last taken from, and sets A's 'return
-   * position' to be where B was..
+   * position' to be where B was.
    */
   void swap_tiles(SDL_Point mouse_point);
 
@@ -83,6 +77,8 @@ public:
    * caller must ensure that there is an empty gap for B.
    */
   void make_room_for_tile(SDL_Point mouse_point);
+
+  void reset();
 
   private:
     static auto get_tile_idx(SDL_Point point);

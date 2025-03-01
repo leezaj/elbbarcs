@@ -2,30 +2,34 @@
 #define TILEBAG_H
 
 #include "Tile.h"
+#include "constants.h"
 #include "types.h"
 #include <span>
-#include <vector>
 
 class TileBag final {
 public:
 
 explicit TileBag(SDL_Renderer *renderer);
 
-[[nodiscard]] Tile take_from();
-
 [[nodiscard]] size_t tiles_left() const;
 
 [[nodiscard]] bool empty() const;
 
+[[nodiscard]] std::span<const Tile> tiles_view() const;
+
+[[nodiscard]] Tile take_from();
+
+[[nodiscard]] std::vector<Tile> swap(std::span<const Tile> with);
+
 void shuffle();
 
-void put_tiles(std::vector<Tile> tiles);
+void reset();
 
-[[nodiscard]] std::span<const Tile> tiles_view() const { return tile_bag_; }
 private:
   void load_tiles(SDL_Renderer* renderer);
-  std::vector<Texture> tile_textures_;
-  std::vector<Tile> tile_bag_;
+  std::array<Texture, constants::kBagTileAmount> tile_textures_;
+  std::array<Tile, constants::kBagTileAmount> tile_bag_;
+  std::size_t take_from_index_ = 0;
 };
 
 #endif // TILEBAG_H

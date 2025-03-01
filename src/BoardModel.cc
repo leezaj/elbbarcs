@@ -1,6 +1,5 @@
 #include "BoardModel.h"
 #include <cassert>
-#include <ranges>
 
 BoardModel::BoardModel() {
   reset();
@@ -62,7 +61,7 @@ bool BoardModel::has_adjacent_played_tile(Row_Col row_col) const {
          is_already_played({row, static_cast<int8_t>(col + 1)});
 }
 
-int BoardModel::word_multiplier(Row_Col row_col) const {
+std::uint8_t BoardModel::word_multiplier(Row_Col row_col) const {
   if (is_already_played(row_col)) {
     return 1;
   }
@@ -99,7 +98,7 @@ int BoardModel::word_multiplier(Row_Col row_col) const {
   }
 }  
 
-int BoardModel::letter_multiplier(Row_Col row_col) const {
+std::uint8_t BoardModel::letter_multiplier(Row_Col row_col) const {
   if (is_already_played(row_col)) {
     return 1;
   }

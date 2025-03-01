@@ -69,7 +69,9 @@ GameOver::GameOver(SDL_Renderer *renderer, Mouse &mouse, GameStateManager &manag
   },
   manager_{&manager},
   playing_state_{&playing_state}
-{}
+{
+  utility::log("Game over state initialized");
+}
 
 void GameOver::render_objects() const {
   SDL_RenderCopy(renderer(), background_.get(), nullptr, nullptr);
@@ -120,12 +122,15 @@ void GameOver::show(int player_score, int opponent_score, int player_tile_sum, i
     opponent_score -= opponent_tile_sum;
   }
   if(player_score > opponent_score) {
+    utility::log("Game over, player wins {} to {}", player_score, opponent_score);
     result = kWinText;
     hint_msg = hints_used ? kHintsUsed : kHintsUnusedWin;
   } else if(opponent_score > player_score){
+    utility::log("Game over, opponent wins {} to {}", opponent_score, player_score);
     result = kLoseText;
     hint_msg = hints_used ? kHintsUsed : kHintsUnusedNoWin;
   } else {
+    utility::log("Game over, draw from equal scores ({} and {})", player_score, opponent_score);
     result = kDrawText;
     hint_msg = hints_used ? kHintsUsed : kHintsUnusedNoWin;
   }

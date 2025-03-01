@@ -23,7 +23,9 @@ ConfirmationDialog::ConfirmationDialog(SDL_Renderer* rend, Mouse& mouse, GameSta
   },
   state_manager_{&manager},
   playing_state_{&playing_state}
-{}
+{
+  utility::log("Confirmation dialog initialized");
+}
   
 void ConfirmationDialog::render_objects() const {
   SDL_RenderCopy(renderer(), background_.get(), nullptr, nullptr);

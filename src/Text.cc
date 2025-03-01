@@ -11,7 +11,6 @@ Text::Text(SDL_Renderer *renderer, TTF_Font *font, int font_size, SDL_Color colo
   Text(renderer, font, font_size, color, std::string_view{}, SDL_Point{}) 
 {}
 
-
 void Text::render(SDL_Renderer* renderer) const {
   SDL_RenderCopy(renderer, texture_.get(), nullptr, &rect_);
 }
@@ -23,8 +22,9 @@ void Text::make_rect(SDL_Point position, std::string_view content) {
 }
 
 void Text::update(SDL_Renderer *renderer, SDL_Color color, std::string_view content, SDL_Point position) {
-  if(content.empty())
+  if(content.empty()){
     content = "\0";
+  }
   TTF_SetFontSize(font_, font_size_);
   Surface temp{TTF_RenderUTF8_Blended(font_, content.data(), color)};
   texture_ = Texture{SDL_CreateTextureFromSurface(renderer, temp.get())};

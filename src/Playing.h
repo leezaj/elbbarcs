@@ -17,7 +17,6 @@
 #include "TileSwapper.h"
 #include "UnplayedTileCounter.h"
 #include "WordOutliner.h"
-#include "utility.h"
 
 /**
  * @class Playing
@@ -41,7 +40,7 @@ public:
    * @param positions A bitset where each 1 position indicates that the tile
    * should be swapped, and 0 otherwise.
    */
-  void swap_tiles(const std::bitset<constants::kRackTileAmount> &positions);
+  void swap_tiles(std::bitset<constants::kRackTileAmount> positions);
 
   /**
    * @brief Check if a given placement on the board is valid, i.e. that it
@@ -84,6 +83,8 @@ private:
 
   void ask_to_restart();
 
+void handle_valid_placement(bool correct_words, Row_Col begin, Row_Col end, std::int32_t score);
+
   Background background_;
   Dawg dictionary_;
   TileBag tile_bag_;
@@ -102,12 +103,11 @@ private:
   SDL_Point tile_offset_{};
   const SelectableGameObject *hovered_{nullptr};
   std::optional<Solver::Solution> saved_best_move_;
-  enum : std::uint8_t { RACK, BOARD } picked_up_from_{};
-  bool mouse_down_{}, players_turn_{Random::coin_flip()}, display_player_points_{}, display_computer_points_{}, 
-    player_has_valid_placement_{}, player_used_hints_{};
   std::uint8_t skipped_turns_in_a_row_{};
   GameOver game_over_;
   UnplayedTileCounter counter_;
+  enum : std::uint8_t { RACK, BOARD } picked_up_from_{};
+  bool mouse_down_{}, players_turn_{Random::coin_flip()}, player_has_valid_placement_{}, player_used_hints_{};
 };
 
 #endif // PLAYING_H

@@ -26,14 +26,11 @@ Board::Board(SDL_Renderer *renderer, BlankTileReplacer& blank_replacer) :
   recently_placed_.reserve(constants::kRackTileAmount);
   already_played_.reserve(constants::kBagTileAmount);
   computer_highlighted_tiles_.reserve(constants::kBagTileAmount);
+  utility::log("Board initialized");
 }
 
 bool Board::has_recently_placed_tiles() const {
   return not recently_placed_.empty() or not blanks_.empty();
-}
-
-std::vector<Row_Col> Board::placed_tile_positions() const {
-  return utility::map(recently_placed_, [](const Tile& t) static { return to_row_col(t.point()); });
 }
 
 bool Board::empty() const {
@@ -68,15 +65,14 @@ bool Board::put_on_board(const Tile& tile) {
   const std::uint8_t value = tile.value();
   model_.set_square(to_row_col({shadow_->x, shadow_->y}), letter, value);
   if(value==0){
-    if(letter != constants::kTileBlankChar) {
-      blanks_.push_back(recently_placed_.back());
-      recently_placed_.pop_back();
-    } else {
+    if(letter == constants::kTileBlankChar) {
       recently_placed_.emplace_back(tile.texture(), *shadow_, letter, value);
       clear_rect(*shadow_);
       replacer_->replace_blank();
       return true;
     }
+    blanks_.push_back(recently_placed_.back());
+    recently_placed_.pop_back();
   }
   recently_placed_.emplace_back(tile.texture(), *shadow_, letter, value);
   place_highlight(*shadow_, true);
@@ -86,8 +82,7 @@ bool Board::put_on_board(const Tile& tile) {
 
 bool Board::put_on_board(Row_Col pos, Tile tile, bool is_player) {
   assert(not model_.is_filled(pos));
-  SDL_Point point = to_point(pos);
-  tile.move(point);
+  tile.move(to_point(pos));
   tile.set_dimensions({.w = constants::kSquarePixelSize, .h = constants::kSquarePixelSize});
   if(tile.letter() == constants::kTileBlankChar){
     blanks_.emplace_back(tile);
@@ -112,7 +107,7 @@ Tile *Board::take_from_board(SDL_Point point) {
       taken_ = *it;
     }
     clear_rect(taken_.rectangle());
-    taken_.set_dimensions({constants::kTileWidth, constants::kTileHeight});
+    taken_.set_dimensions({.w = constants::kTileWidth, .h = constants::kTileHeight});
     model_.clear_square(to_row_col(taken_.point()));
     // because it is a pointer to const, we need to make the beginning of the
     // array a pointer to const as well to make it work with std::distance
@@ -133,19 +128,11 @@ Tile Board::take_oldest_placed() {
   return *take_from_board(recently_placed_.front().point());
 }
 
-Tile Board::take_tile() {
-  assert(not recently_placed_.empty() or not already_played_.empty());
-  if (recently_placed_.empty()) {
-    Tile back = already_played_.back();
-    already_played_.pop_back();
-    return back;
-  }
-  return *take_from_board(recently_placed_.back().point());
-}
-
 void Board::reset() {
   model_.reset();
   shadow_.reset();
+  recently_placed_.clear();
+  already_played_.clear();
   computer_highlighted_tiles_.clear();
   SDL_SetRenderTarget(renderer_, board_texture_.get());
   SDL_RenderClear(renderer_);

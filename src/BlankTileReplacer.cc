@@ -6,62 +6,49 @@
 #include <SDL2/SDL_render.h>
 #include <cassert>
 
-namespace {
-struct BlankTileInfo {
-  b::EmbedInternal::EmbeddedFile file;
-  char letter;
-};
-} // namespace
-
-void BlankTileReplacer::load_tiles(SDL_Renderer* renderer) {
-  std::array<BlankTileInfo, constants::kNumOfTiles-1> blank_infos{{
-      {b::embed<"assets/blank-tiles/a.png">(),'a'},
-      {b::embed<"assets/blank-tiles/b.png">(),'b'},
-      {b::embed<"assets/blank-tiles/c.png">(),'c'},
-      {b::embed<"assets/blank-tiles/d.png">(),'d'},
-      {b::embed<"assets/blank-tiles/e.png">(),'e'},
-      {b::embed<"assets/blank-tiles/f.png">(),'f'},
-      {b::embed<"assets/blank-tiles/g.png">(),'g'},
-      {b::embed<"assets/blank-tiles/h.png">(),'h'},
-      {b::embed<"assets/blank-tiles/i.png">(),'i'},
-      {b::embed<"assets/blank-tiles/j.png">(),'j'},
-      {b::embed<"assets/blank-tiles/k.png">(),'k'},
-      {b::embed<"assets/blank-tiles/l.png">(),'l'},
-      {b::embed<"assets/blank-tiles/m.png">(),'m'},
-      {b::embed<"assets/blank-tiles/n.png">(),'n'},
-      {b::embed<"assets/blank-tiles/o.png">(),'o'},
-      {b::embed<"assets/blank-tiles/p.png">(),'p'},
-      {b::embed<"assets/blank-tiles/q.png">(),'q'},
-      {b::embed<"assets/blank-tiles/r.png">(),'r'},
-      {b::embed<"assets/blank-tiles/s.png">(),'s'},
-      {b::embed<"assets/blank-tiles/t.png">(),'t'},
-      {b::embed<"assets/blank-tiles/u.png">(),'u'},
-      {b::embed<"assets/blank-tiles/v.png">(),'v'},
-      {b::embed<"assets/blank-tiles/w.png">(),'w'},
-      {b::embed<"assets/blank-tiles/x.png">(),'x'},
-      {b::embed<"assets/blank-tiles/y.png">(),'y'},
-      {b::embed<"assets/blank-tiles/z.png">(),'z'},
-  }};
-  auto textures = utility::map(blank_infos, [renderer](const BlankTileInfo& info) -> Texture {
-    SDL_RWops *buffer = SDL_RWFromConstMem(info.file.data(), static_cast<int>(info.file.size()));
-    return Texture{IMG_LoadTexture_RW(renderer, buffer, 1)};
-  });
-  std::vector<Tile> tiles;
-  tiles.reserve(constants::kNumOfTiles-1);
-  std::ranges::transform(blank_infos, textures, std::back_inserter(tiles), [](const BlankTileInfo& i, const Texture& t){
-    return Tile(t.get(), SDL_Rect{.x=0, .y=0, .w=constants::kTileWidth, .h=constants::kTileHeight}, i.letter, 0);
-  });
-  blanks_textures_ = std::move(textures);
-  blanks_tiles_ = std::move(tiles);
-}
-
 BlankTileReplacer::BlankTileReplacer(SDL_Renderer *rend, Mouse& mouse, GameStateManager& manager, Board& board, Playing& playing_state) : 
   GameState(rend, mouse),
   state_manager_{&manager},
   board_{&board},
   playing_state_{&playing_state}
 {
-  load_tiles(rend);
+  const std::array blank_infos{
+      b::embed<"assets/blank-tiles/a.png">(),
+      b::embed<"assets/blank-tiles/b.png">(),
+      b::embed<"assets/blank-tiles/c.png">(),
+      b::embed<"assets/blank-tiles/d.png">(),
+      b::embed<"assets/blank-tiles/e.png">(),
+      b::embed<"assets/blank-tiles/f.png">(),
+      b::embed<"assets/blank-tiles/g.png">(),
+      b::embed<"assets/blank-tiles/h.png">(),
+      b::embed<"assets/blank-tiles/i.png">(),
+      b::embed<"assets/blank-tiles/j.png">(),
+      b::embed<"assets/blank-tiles/k.png">(),
+      b::embed<"assets/blank-tiles/l.png">(),
+      b::embed<"assets/blank-tiles/m.png">(),
+      b::embed<"assets/blank-tiles/n.png">(),
+      b::embed<"assets/blank-tiles/o.png">(),
+      b::embed<"assets/blank-tiles/p.png">(),
+      b::embed<"assets/blank-tiles/q.png">(),
+      b::embed<"assets/blank-tiles/r.png">(),
+      b::embed<"assets/blank-tiles/s.png">(),
+      b::embed<"assets/blank-tiles/t.png">(),
+      b::embed<"assets/blank-tiles/u.png">(),
+      b::embed<"assets/blank-tiles/v.png">(),
+      b::embed<"assets/blank-tiles/w.png">(),
+      b::embed<"assets/blank-tiles/x.png">(),
+      b::embed<"assets/blank-tiles/y.png">(),
+      b::embed<"assets/blank-tiles/z.png">(),
+  };
+  blanks_textures_ = utility::map(blank_infos, [rend](const auto& file) -> Texture {
+    SDL_RWops *buffer = SDL_RWFromConstMem(file.data(), static_cast<int>(file.size()));
+    return Texture{IMG_LoadTexture_RW(rend, buffer, 1)};
+  });
+  blanks_tiles_.reserve(constants::kNumOfTiles-1);
+  for(auto [texture, info] : std::views::zip(blanks_textures_, constants::tile_info)) {
+    blanks_tiles_.emplace_back(texture.get(), 
+        SDL_Rect{.x = 0, .y = 0, .w = constants::kTileWidth, .h = constants::kTileHeight}, info.letter, 0);
+  }
   static constexpr auto rows = 4;
   static constexpr auto tiles_per_row = constants::kNumOfTiles / rows;
   static constexpr auto begin_x = 100, begin_y = 200, gap = 100;
@@ -70,6 +57,7 @@ BlankTileReplacer::BlankTileReplacer(SDL_Renderer *rend, Mouse& mouse, GameState
     tile.move(SDL_Point{begin_x + gap * (idx % tiles_per_row), begin_y + gap * (idx / tiles_per_row)});
     ++idx;
   }
+  utility::log("Blank tile replacer initialized");
 }
 
 void BlankTileReplacer::render_objects() const {

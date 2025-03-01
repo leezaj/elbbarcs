@@ -1,13 +1,12 @@
 #ifndef ASSETPOOL_H
 #define ASSETPOOL_H
 
-#include "types.h"
-#include <concepts>
 #include "battery/embed.hpp"
+#include "types.h"
+#include "utility.h"
 #include <SDL2/SDL_image.h>
 #include <utility>
 #include <vector>
-#include "utility.h"
 
 enum class TextureType : uint8_t {
   BOARD,
@@ -45,7 +44,7 @@ private:
   }
 
 public:
-  constexpr AssetPool(SDL_Renderer* renderer) : 
+  constexpr explicit AssetPool(SDL_Renderer* renderer) : 
     textures_{utility::map(std::to_array({
       b::embed<"assets/textures/board.png">(),
       b::embed<"assets/textures/dialog_box.png">(),
@@ -57,7 +56,9 @@ public:
     fonts_{utility::map(std::to_array({
       b::embed<"assets/fonts/LowballNeueRegular-rglJB.ttf">(),
       b::embed<"assets/fonts/MouldyCheeseRegular-WyMWG.ttf">()}), AssetPool::to_font)}
-  {}
+  {
+    utility::log("Asset pool initialized");
+  }
 
   /**
    * @brief Returns a non-owning raw pointer corresponding to the type provided

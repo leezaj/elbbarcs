@@ -7,6 +7,7 @@ ButtonMaker::ButtonMaker(const AssetPool& assets):
   auto btn = b::embed<"assets/templates/wood_button.png">();
   SDL_RWops* buffer = SDL_RWFromConstMem(btn.data(), static_cast<int>(btn.size()));
   wood_button_ = Surface{IMG_Load_RW(buffer, 1)};
+  utility::log("Button maker initialized");
 }
 
 Button ButtonMaker::make_text_button(SDL_Renderer *rend, std::string_view text,

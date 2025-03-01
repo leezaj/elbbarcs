@@ -17,7 +17,9 @@ Scoreboard::Scoreboard(SDL_Renderer *renderer, const AssetPool& assets) :
   computer_score_(renderer, assets.get(FontType::LOWBALL), kScoreFontSize, constants::kFontColorBeige, "000", kComputerScoreLocation),
   player_id_(renderer, assets.get(FontType::MOULDY_CHEESE), kIdFontSize, constants::kFontColorBrown, "You", kHumanIdLocation),
   computer_id_(renderer, assets.get(FontType::MOULDY_CHEESE), kIdFontSize, constants::kFontColorBrown, "Computer", kComputerIdLocation)
-{}
+{
+  utility::log("Scoreboard initialized");
+}
 
 void Scoreboard::add_score(Player player, std::int32_t amount) {
   auto [text, value, location] =

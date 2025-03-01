@@ -1,3 +1,6 @@
+#ifndef ROWCOL_H
+#define ROWCOL_H
+
 #include "constants.h"
 #include <SDL2/SDL_rect.h>
 #include <cstdint>
@@ -23,3 +26,5 @@ struct std::hash<Row_Col> {
     return (static_cast<size_t>(rc.row) << bit_size/2) | static_cast<size_t>(rc.col);
   }
 };
+
+#endif // ROWCOL_H

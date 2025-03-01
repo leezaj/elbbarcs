@@ -27,15 +27,13 @@ public:
 
   [[nodiscard]] Tile take_oldest_placed();
 
-  [[nodiscard]] Tile take_tile();
-
   [[nodiscard]] bool empty() const;
 
   [[nodiscard]] size_t num_of_tiles() const;
 
   [[nodiscard]] bool has_recently_placed_tiles() const;
 
-  [[nodiscard]] std::vector<Row_Col> placed_tile_positions() const;
+  [[nodiscard]] std::span<const Tile> recently_placed_view() const { return recently_placed_; }
 
   [[nodiscard]] const BoardModel& get_model() {return model_;}
 
@@ -44,8 +42,6 @@ public:
   void play_placed_tiles(bool is_player);
 
   void render() const;
-
-  [[nodiscard]] std::span<const Tile> already_played_view() const { return already_played_; }
 
 private:
   void clear_rect(const SDL_Rect& rect);

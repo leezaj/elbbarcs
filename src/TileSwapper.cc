@@ -47,6 +47,7 @@ TileSwapper::TileSwapper(SDL_Renderer* rend, Mouse &mouse, GameStateManager &man
   selected_text_{rend, assets.get(FontType::MOULDY_CHEESE), kFontSize, constants::kFontColorBeige}
 {
   update_tiles_left_text();
+  utility::log("Tile swapper initialized");
 }
 
 void TileSwapper::ask(Texture background, std::vector<Tile> tiles) {

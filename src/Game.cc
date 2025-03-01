@@ -6,7 +6,7 @@
 #include <SDL2/SDL_video.h>
 
 Game::Game() : 
-  window_{SDL_CreateWindow("Elbbarcs", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
+  window_{SDL_CreateWindow(constants::kGameName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
                            constants::kWindowWidth, constants::kWindowHeight, SDL_WINDOW_RESIZABLE)},
   renderer_{SDL_CreateRenderer(window_.get(), -1, 0)},
   mouse_{{ .default_cursor = Cursor{SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW)},
@@ -56,6 +56,7 @@ void Game::process_events() {
     switch(event_.type) {
       [[unlikely]] case SDL_QUIT:
         is_running_ = false;
+        utility::log("Quit signal received");
         break;
       [[likely]] default:
         state_manager_.top()->handle_event(event_);

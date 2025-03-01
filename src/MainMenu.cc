@@ -78,6 +78,7 @@ MainMenu::MainMenu(SDL_Renderer *rend, Mouse& mouse, const AssetPool &assets, Ga
       [&, rend, this]() {
         // Lazy load the playing state
         if (not playing_state_) {
+          utility::log("Initializing playing state...");
           playing_state_.emplace(rend, mouse, assets, manager, button_maker);
         } else {
           playing_state_->restart_game();
@@ -92,6 +93,7 @@ MainMenu::MainMenu(SDL_Renderer *rend, Mouse& mouse, const AssetPool &assets, Ga
     button_textures_.emplace_back(temp.take_texture());
     buttons_.emplace_back(button_textures_.back().get(), temp.rect(), std::move(callbacks[i]));
   }
+  utility::log("Main menu initialized");
 }
 
 void MainMenu::render_objects() const {

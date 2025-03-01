@@ -109,8 +109,8 @@ b_embed(${PROJECT_NAME} assets/templates/wood_button.png)
 
 
 if(DEFINED EMSCRIPTEN)
-  target_compile_options(${PROJECT_NAME} PRIVATE  --use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx)
-  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s WASM=1  --use-preload-cache -s EVAL_CTORS=2")
+  target_compile_options(${PROJECT_NAME} PRIVATE  --use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx -flto)
+  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s WASM=1  --use-preload-cache -s EVAL_CTORS=2 -flto")
   # debug linker flags
   set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_DEBUG "-g -sASSERTIONS=2 -sSTACK_OVERFLOW_CHECK=2 -fsanitize=undefined")
   set(CMAKE_EXECUTABLE_SUFFIX ".js")

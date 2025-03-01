@@ -15,14 +15,9 @@
  */
 class GameState {
 public:
-  /**
-   * @brief The game state will render all of the game objects that it composes
-   */
+
   virtual void render_objects() const = 0;
 
-  /**
-   * @brief The game state will handle all events it is able to handle
-   */
   virtual void handle_event(const SDL_Event &event) = 0;
 
   virtual ~GameState() = default;
@@ -46,29 +41,48 @@ protected:
 
   void set_default_cursor() const {mouse_->set_default_cursor();}
 
-  template <typename T> inline auto *handle_hovering(T&& things_to_check) {
-    typename std::remove_reference_t<T>::value_type *it{nullptr};
-    for (auto &selectable : things_to_check) {
-      if (contains(selectable.rectangle(), mouse_pos())) {
-        bool is_valid{};
-        if constexpr(std::is_same_v<decltype(selectable), Button&>) {
-          is_valid = selectable.is_enabled(); 
-        } else if constexpr(std::is_same_v<decltype(selectable), Tile&>) {
-          is_valid = selectable.letter() != constants::kTileGapChar;
-        }
-        if (is_valid) {
-          it = &selectable;
-          selectable.hover();
-        }
-      } else {
-        selectable.unhover();
-      }
-    }
-    it ? set_hand_cursor() : set_default_cursor();
-    return it;
-  }
+  template <std::ranges::range R> requires std::derived_from<std::ranges::range_value_t<R>, SelectableGameObject>
+  auto *handle_hovering(R& things_to_check) {
 
-  void click_hovered(auto* hovered) {
+    using T = std::ranges::range_value_t<R>;
+    static bool last_hover = false;
+
+    static constexpr auto cursor_funcs = std::array{
+      &GameState::set_default_cursor,
+      &GameState::set_hand_cursor
+    };
+
+    auto it = std::ranges::find_if(things_to_check, [this](T& selectable) {
+        if (!contains(selectable.rectangle(), mouse_pos())) {
+            selectable.unhover();
+            return false;
+        }
+
+        if constexpr (std::is_same_v<T, Button>) {
+            if (!selectable.is_enabled()) {
+              return false;
+            }
+        } else if constexpr (std::is_same_v<T, Tile>) {
+            if (selectable.letter() == constants::kTileGapChar) {
+              return false;
+            }
+        }
+
+        selectable.hover();
+        return true;
+    });
+
+    bool current_hover = (it != things_to_check.end());
+
+    if (current_hover != last_hover) {
+      std::invoke(cursor_funcs[current_hover], this);
+      last_hover = current_hover;
+    }
+
+    return (current_hover ? &*it : nullptr);
+}
+
+  void click_hovered(const Button* hovered) {
     if(hovered == nullptr) {
       return;
     }

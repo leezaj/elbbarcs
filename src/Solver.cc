@@ -1,21 +1,20 @@
 #include "Solver.h"
+#include "utility.h"
 #include <algorithm>
 #include <numeric>
 #include <ranges>
-#include "utility.h"
 
-constexpr Row_Col kMiddleSquare = {constants::kSquareNum / 2,
-                                          constants::kSquareNum / 2};
 
 Solver::Solver(const BoardModel& board, const Dawg& dict):
   board_{&board},
   dict_{&dict}
 {
   solution_.tiles.reserve(constants::kRackTileAmount);
+  utility::log("Solver initialized");
 }
 
 Row_Col Solver::move(Row_Col row_col, int row_delta, int col_delta) {
-  return {static_cast<int8_t>(row_col.row + row_delta), static_cast<int8_t>(row_col.col + col_delta)};
+  return {.row = static_cast<int8_t>(row_col.row + row_delta), .col = static_cast<int8_t>(row_col.col + col_delta)};
 }
 
 Row_Col Solver::before(Row_Col row_col, Direction dir) {
@@ -56,11 +55,12 @@ bool Solver::is_contiguous(Row_Col begin, Row_Col end, Direction dir) const {
   return false;
 }
 
-bool Solver::words_valid(const std::vector<Row_Col> &positions, Direction dir) const{
-  auto word = positions | std::views::transform( std::bind_front(&BoardModel::get_letter, board_));
+std::vector<std::string> Solver::get_invalid_words(std::span<const Row_Col> positions, Direction dir) const {
+  std::vector<std::string> result;
+  auto word = positions | std::views::transform(std::bind_front(&BoardModel::get_letter, board_));
   // ensure the actual word is valid
   if (not dict_->word_exists(word)) {
-    return false;
+    result.emplace_back(word.begin(), word.end());
   }
   // ensure all cross words are valid
   std::string cross_word;
@@ -84,40 +84,20 @@ bool Solver::words_valid(const std::vector<Row_Col> &positions, Direction dir) c
     }
     cross_word.reserve(++size);
     for(auto i = 0UZ; i<size; ++i) {
-      cross_word += board_->get_letter(scan_before);
+      cross_word.push_back(board_->get_letter(scan_before));
       scan_before = after_cross(scan_before,dir);
     }
     if (not dict_->word_exists(cross_word)) {
-      return false;
+      result.push_back(std::move(cross_word));
     }
   }
-  return true;
-}
-
-std::optional<Solver::Direction> Solver::determine_direction(const auto& placed_tiles) const {
-  const auto& first = placed_tiles.front();
-  if (placed_tiles.size() == 1) {
-    if (board_->is_filled(before(first, ACROSS)) or board_->is_filled(after(first, ACROSS))) {
-      return ACROSS;
-    }
-    if (board_->is_filled(before(first, DOWN)) or board_->is_filled(after(first, DOWN))) {
-      return DOWN;
-    }
-    return std::nullopt;
-  }
-  if (std::ranges::all_of(placed_tiles, std::bind_front(std::equal_to{}, first.row), &Row_Col::row)) {
-    return ACROSS;
-  }
-  if (std::ranges::all_of(placed_tiles, std::bind_front(std::equal_to{}, first.col), &Row_Col::col)) {
-    return DOWN;
-  }
-  return std::nullopt;
+  return result;
 }
 
 std::int32_t Solver::calculate_score_human(const std::vector<Row_Col> &positions, Direction dir) const {
   // lambda for calculating cross scores
   const auto cross_score = [dir, this](Row_Col pos) -> std::int32_t {
-    auto score = 0;
+    std::int32_t score = 0;
     auto scan_before = pos, scan_after = pos;
     while(board_->is_filled(before_cross(scan_before, dir))) {
       scan_before = before_cross(scan_before, dir);
@@ -137,18 +117,18 @@ std::int32_t Solver::calculate_score_human(const std::vector<Row_Col> &positions
   const auto transform_positions_with = [&positions, this](auto func) {
     return positions | std::views::transform(std::bind_front(func, board_));
   };
-  const int word_val = std::invoke([&]{
+  const std::int32_t word_val = std::invoke([&]{
     const auto vals = transform_positions_with(&BoardModel::get_value);
     const auto mults = transform_positions_with(&BoardModel::letter_multiplier);
-    return std::transform_reduce(vals.begin(), vals.end(), mults.begin(), 0);
+    return std::transform_reduce(vals.begin(), vals.end(), mults.begin(), std::int32_t{});
   });
-  const int word_mult = std::invoke([&]{
+  const std::int32_t word_mult = std::invoke([&]{
     const auto mults = transform_positions_with(&BoardModel::word_multiplier);
-    return std::reduce(mults.begin(), mults.end(), 1, std::multiplies{});
+    return std::reduce(mults.begin(), mults.end(), std::int32_t{1}, std::multiplies{});
   });
-  int total_word =  word_val * word_mult;
-  int actually_placed = 0;
-  int total_cross = 0;
+  std::int32_t total_word =  word_val * word_mult;
+  std::int32_t actually_placed = 0;
+  std::int32_t total_cross = 0;
   for(auto pos: positions) {
     if(not board_->is_already_played(pos)){
       total_cross += cross_score(pos);
@@ -162,17 +142,17 @@ std::int32_t Solver::calculate_score_human(const std::vector<Row_Col> &positions
 }
 
 std::int32_t Solver::calculate_score_computer(const std::vector<TileData> &played_tiles, Row_Col last_pos, Direction dir) const {
-  auto total_cross = 0, total_word = 0, total_mult = 1, actually_placed = 0;
+  std::int32_t total_cross = 0, total_word = 0, total_mult = 1, actually_placed = 0;
   auto vals = played_tiles | std::views::transform(&TileData::value) | std::views::reverse;
   for(auto val : vals) {
-    auto this_letter = val*board_->letter_multiplier(last_pos);
-    auto this_mult = board_->word_multiplier(last_pos);
+    std::int32_t this_letter = val*board_->letter_multiplier(last_pos);
+    std::int32_t this_mult = board_->word_multiplier(last_pos);
     total_word += this_letter;
     total_mult *= this_mult;
     if(not board_->is_already_played(last_pos)) {
       ++actually_placed;
       if (auto it = cross_checks_.at(last_pos); it.has_connecting_tiles) {
-        int cross_score = it.score;
+        std::int32_t cross_score = it.score;
         cross_score += this_letter;
         cross_score *= this_mult;
         total_cross += cross_score;
@@ -187,59 +167,113 @@ std::int32_t Solver::calculate_score_computer(const std::vector<TileData> &playe
   return total_word + total_cross;
 }
 
-std::optional<Solver::BoardEvaluation> Solver::get_board_evaluation(const std::vector<Row_Col> &placed_tiles) const {
-  if (placed_tiles.empty() or not board_->is_filled(kMiddleSquare)) {
-    return std::nullopt;
+auto Solver::determine_direction(auto tile_positions) const  -> std::expected<std::pair<decltype(tile_positions), Direction>, InvalidPlacementError> {
+  assert(!tile_positions.empty());
+  const auto& first = tile_positions.front();
+  if (tile_positions.size() == 1) {
+    if (board_->is_filled(before(first, ACROSS)) or board_->is_filled(after(first, ACROSS))) {
+      return std::make_pair(tile_positions, ACROSS);
+    }
+    if (board_->is_filled(before(first, DOWN)) or board_->is_filled(after(first, DOWN))) {
+      return std::make_pair(tile_positions, DOWN);
+    }
+    return std::unexpected{InvalidPlacementError::NO_ADJACENT_TILE};
   }
-  const std::optional<Direction> determined_direction = determine_direction(placed_tiles);
-  if(not determined_direction.has_value()){
-    return std::nullopt;
+  if (std::ranges::all_of(tile_positions, std::bind_front(std::equal_to{}, first.row), &Row_Col::row)) {
+    return std::make_pair(tile_positions, ACROSS);
   }
-  const Direction dir = *determined_direction;
-  auto [begin, end] = std::ranges::minmax(placed_tiles, {}, dir == ACROSS ? &Row_Col::col : &Row_Col::row);
-  if (not is_contiguous(begin, end, dir) or (board_->has_already_played_tiles() and
-     std::ranges::none_of(placed_tiles, std::bind_front(&BoardModel::has_adjacent_played_tile, board_)))) {
-    return std::nullopt;
+  if (std::ranges::all_of(tile_positions, std::bind_front(std::equal_to{}, first.col), &Row_Col::col)) {
+    return std::make_pair(tile_positions, DOWN);
   }
+  return std::unexpected{InvalidPlacementError::NOT_STRAIGHT_LINE};
+}
+
+std::vector<Row_Col> Solver::expand_until_empty(Row_Col begin, Row_Col end, Direction dir) const {
+  std::vector<Row_Col> positions;
   while (board_->is_filled(before(begin, dir))) {
     begin = before(begin, dir);
   }
   while (board_->is_filled(after(end, dir))) {
     end = after(end, dir);
   }
-  std::vector<Row_Col> positions;
   positions.reserve(static_cast<size_t>(dir == ACROSS ? end.col - begin.col + 1 : end.row - begin.row + 1));
   for(Row_Col start = begin, stop = after(end,dir); start != stop; start = after(start, dir)) {
     positions.push_back(start);
   }
-  return BoardEvaluation{.is_valid_word = words_valid(positions, dir),
-                         .total_score = calculate_score_human(positions, dir),
-                         .word_begin_pos = begin,
-                         .word_end_pos = end};
+  return positions;
+}
+
+std::expected<std::span<const Tile>, Solver::InvalidPlacementError> Solver::ensure_nonempty(std::span<const Tile> input) {
+  if(input.empty()) {
+    return std::unexpected{InvalidPlacementError::NO_TILES_PROVIDED};
+  }
+  return input;
+}
+
+std::expected<std::span<const Tile>, Solver::InvalidPlacementError> Solver::ensure_middle_squared_filled(std::span<const Tile> input) const {
+  if(not board_->is_filled(kMiddleSquare)) {
+    return std::unexpected{InvalidPlacementError::MIDDLE_SQUARE_NOT_FILLED};
+  }
+  return input;
+}
+
+namespace {
+auto get_positions_of_tiles(std::span<const Tile> input) {
+  return input | std::views::transform([](const Tile& tile) static { return to_row_col(tile.point());});
+}
+} // namespace
+
+std::expected<std::tuple<Row_Col, Row_Col, Solver::Direction>, Solver::InvalidPlacementError> Solver::get_begin_and_end(auto tile_positions, Direction dir) const {
+  auto [begin, end] = std::ranges::minmax(tile_positions, {}, dir == ACROSS ? &Row_Col::col : &Row_Col::row);
+  if(not is_contiguous(begin, end, dir)) {
+    return std::unexpected{InvalidPlacementError::NOT_CONTIGUOUS};
+  }
+  if(board_->has_already_played_tiles() and std::ranges::none_of(tile_positions, std::bind_front(&BoardModel::has_adjacent_played_tile, board_))) {
+      return std::unexpected{InvalidPlacementError::NO_ADJACENT_TILE};
+  }
+  return std::tuple{begin, end, dir};
+}
+
+Solver::Evaluation Solver::check_word_validity(Row_Col begin, Row_Col end, Direction dir) const {
+  std::vector<Row_Col> expand = expand_until_empty(begin, end, dir);
+  assert(!expand.empty());
+  ValidPlacement placement{.begin = expand.front(), .end = expand.back(), .score = calculate_score_human(expand, dir)};
+  if(auto invalid_words = get_invalid_words(expand, dir); !invalid_words.empty()) {
+    return std::unexpected<Evaluation::error_type>{std::in_place, std::in_place_type<ValidPlacementInvalidWords>, placement, std::move(invalid_words) };
+  }
+  return placement;
+}
+
+Solver::Evaluation Solver::get_board_evaluation(std::span <const Tile> placed_tiles) const {
+  return  ensure_nonempty(placed_tiles)
+          .and_then(std::bind_front(&Solver::ensure_middle_squared_filled, this))
+          .transform(get_positions_of_tiles)
+          .and_then([this](auto tile_positions){return determine_direction(tile_positions);})
+          .and_then([this](auto pos_and_dir) { return get_begin_and_end(pos_and_dir.first, pos_and_dir.second);})
+          .transform_error([](InvalidPlacementError error) static { return Evaluation::error_type(error); })
+          .and_then([this](auto tuple) {return std::apply(std::bind_front(&Solver::check_word_validity, this), tuple);}); 
 }
 
 void Solver::get_all_anchors() {
-  const auto is_anchor = [this](Row_Col rc) -> bool {
-    return board_->is_empty(rc) and board_->has_adjacent_played_tile(rc);
-  };
-  for(auto pos : BoardModel::all_positions | std::views::filter(is_anchor)){
-    current_anchors_.emplace(pos);
-  }
+  auto all_anchors = BoardModel::all_positions | std::views::filter([this](Row_Col rc) {
+      return board_->is_empty(rc) and board_->has_adjacent_played_tile(rc);
+  });
+  current_anchors_.insert(all_anchors.begin(), all_anchors.end());
 }
 
-void Solver::handle_legal_move( const std::vector<TileData> &played_tiles, Row_Col last_pos, Direction dir){
+void Solver::handle_legal_move(const std::vector<TileData> &played_tiles, Row_Col last_pos, Direction dir){
   auto score = calculate_score_computer(played_tiles, last_pos, dir);
-  if(score > solution_.info.total_score) {
+  if(score > solution_.info.score) {
     solution_.tiles.clear();
-    solution_.info.total_score = score;
-    solution_.info.word_end_pos = last_pos;
+    solution_.info.score = score;
+    solution_.info.end = last_pos;
     for(auto [letter, value]: played_tiles | std::views::reverse) {
       if (not board_->is_already_played(last_pos)) {
         solution_.tiles.emplace_back(last_pos, letter, value == 0);
       }
       last_pos = before(last_pos, dir);
     }
-    solution_.info.word_begin_pos = after(last_pos, dir);
+    solution_.info.begin = after(last_pos, dir);
   }
 }
 
@@ -317,16 +351,13 @@ void Solver::extend_after(std::vector<TileData> tiles_before, Direction dir, Row
 
 void Solver::make_cross_checks(Direction dir) {
   static constexpr std::uint32_t all_letters =  0b11111111111111111111111111;
-  const auto is_empty = [this](Row_Col rc) -> bool {
-    return board_->is_empty(rc);
-  };
   cross_checks_.clear();
-  std::string split_word;
-  for(auto pos : BoardModel::all_positions | std::views::filter(is_empty)) {
-    Row_Col up_scan = pos, down_scan = pos;
+  static thread_local std::string split_word;
+  for(auto empty : BoardModel::all_positions | std::views::filter([this](Row_Col rc) {return board_->is_empty(rc);})) {
+    Row_Col up_scan = empty, down_scan = empty;
     std::size_t up_size = 0, down_size = 0;
     std::uint32_t legal_here{};
-    std::int16_t cross_score{};
+    std::int32_t cross_score{};
     bool is_connected{false};
     while(board_->is_filled(before_cross(up_scan, dir))){
       up_scan = before_cross(up_scan, dir);
@@ -348,7 +379,7 @@ void Solver::make_cross_checks(Direction dir) {
       }
       std::size_t separating_idx = split_word.size();
       split_word += '\0';
-      down_scan = after_cross(pos, dir);
+      down_scan = after_cross(empty, dir);
       for(auto i = 0UZ; i<down_size; ++i) {
         split_word += board_->get_letter(down_scan);
         cross_score += board_->get_value(down_scan);
@@ -361,25 +392,26 @@ void Solver::make_cross_checks(Direction dir) {
         }
       }
     }
-    cross_checks_.try_emplace(pos, legal_here, cross_score, is_connected);
+    cross_checks_.try_emplace(empty, legal_here, cross_score, is_connected);
   }
 }
 
-Solver::Solution Solver::get_best_move(const std::vector<Tile> &rack) {
+Solver::Solution Solver::get_best_move(std::span<const Tile> rack) {
   static constexpr std::array<Direction, 2> all_directions{ACROSS,DOWN};
-  std::vector<TileData> tiles = utility::map(rack, [](const Tile& t) static{ return TileData{t.letter(), t.value()}; });
+  const std::vector<TileData> tiles = utility::map(rack, [](const Tile& tile) static { 
+    return TileData{.letter = tile.letter(), .value = tile.value()}; 
+  });
   solution_.info = {};
   solution_.tiles.clear();
   current_anchors_.clear();
-  int dirs_to_check{};
+  std::span<const Direction> directions;
   if (board_->has_already_played_tiles()) {
-    dirs_to_check = 2;
+    directions = all_directions;
     get_all_anchors();
   } else {
-    dirs_to_check = 1;
+    directions = std::views::counted(all_directions.begin(), 1);
     current_anchors_.emplace(kMiddleSquare);
   }
-  auto directions = std::views::counted(all_directions.begin(), dirs_to_check);
   for (auto dir : directions) {
     make_cross_checks(dir);
     for (auto anchor : current_anchors_) {
@@ -396,7 +428,7 @@ Solver::Solution Solver::get_best_move(const std::vector<Tile> &rack) {
           ++expand_limit;
           scan_pos = before(scan_pos, dir);
         }
-        before_part({}, dir, anchor, tiles, dict_->root(), expand_limit);
+        before_part(std::vector<TileData>{}, dir, anchor, tiles, dict_->root(), expand_limit);
       } else {
         std::vector<TileData> tiles_before;
         tiles_before.reserve(num_of_tiles_before_anchor);
