@@ -1,6 +1,8 @@
 #include "Playing.h"
 #include "BlankTileReplacer.h"
 #include "ConfirmationDialog.h"
+#include "Game.h"
+#include "battery/embed.hpp"
 #include "constants.h"
 #include "utility.h"
 #include <SDL2/SDL_events.h>
@@ -9,7 +11,6 @@
 #include <algorithm>
 #include <cassert>
 #include <glaze/glaze.hpp>
-#include "battery/embed.hpp"
 
 constexpr SDL_Rect kShuffleButtonRect{
   .x = constants::kRackTilePositions.front().x - constants::kRackButtonGap, 
@@ -47,67 +48,79 @@ constexpr SDL_Rect kCloseButtonRect{
 
 constexpr int kMaxSkipsInARow = 6; // the 'six-zero  rule'
 
-Playing::Playing(SDL_Renderer *rend, Mouse& mouse, const AssetPool& assets, GameStateManager& manager, ButtonMaker& button_maker) :
-  GameState{rend, mouse},
+namespace {
+[[nodiscard]] constexpr std::string_view invalid_placement_error_to_string(Solver::InvalidPlacementError error) {
+  using enum Solver::InvalidPlacementError;
+  switch(error) {
+    case NO_TILES_PROVIDED: return "At least one tile must be played";
+    case MIDDLE_SQUARE_NOT_FILLED: return "The middle square is not filled";
+    case NO_ADJACENT_TILE: return "At least one tile must be next to an already existing tile";
+    case NOT_STRAIGHT_LINE: return "Tiles must be in a straight line";
+    case NOT_CONTIGUOUS: return "Tiles must be contiguous (no spaces between them)";
+    default: std::unreachable();
+  }
+}
+} // namespace
+
+Playing::Playing(const AssetPool& assets, ButtonMaker& button_maker) :
   background_{assets.get(TextureType::BOARD)},
-  tile_bag_{rend},
-  blank_replacer_(rend, mouse, manager, board_, *this),
-  board_{rend, blank_replacer_},
+  tile_bag_{Game::renderer()},
+  blank_replacer_(board_, *this),
+  board_{Game::renderer(), blank_replacer_},
   solver_{board_.get_model(), dictionary_},
-  rack_{rend},
-  confirm_dialog_(rend, mouse, manager, *this, assets, button_maker),
-  tile_swapper_(rend, mouse, manager, *this, assets, tile_bag_),
+  rack_{Game::renderer()},
+  confirm_dialog_(*this, assets, button_maker),
+  tile_swapper_(*this, assets, tile_bag_),
   shuffle_{assets.get(TextureType::SHUFFLE_BUTTON), kShuffleButtonRect, std::bind_front(&Rack::shuffle, &rack_)},
-  enter_{assets.get(TextureType::ENTER_BUTTON), kEnterButtonRect, std::bind_front(&Playing::play_turn, this)},
   recall_{assets.get(TextureType::RECALL_BUTTON), kRecallButtonRect, std::bind_front(&Playing::recall_tiles, this)},
-  restart_{button_maker.make_text_button(rend, "Restart", kRestartButtonRect, std::bind_front(&Playing::ask_to_restart, this))},
-  swap_{button_maker.make_text_button(rend, "Swap", kSwapButtonRect, [this]{tile_swapper_.ask(get_snapshot(false), rack_.get_tiles());})},
-  skip_{button_maker.make_text_button(rend, "Skip", kSkipButtonRect, std::bind_front(&Playing::skip_turn, this))},
-  hint_{button_maker.make_text_button(rend, "Hint", kHintButtonRect, std::bind_front(&Playing::put_best_move, this))},
-  close_{assets.get(TextureType::X_BUTTON), kCloseButtonRect, [this, &manager]{
-      confirm_dialog_.ask("Exit to Main Menu?", [&manager] {
-        while(manager.size()!=1) {
-          manager.pop();
-        }
-      });
-  }},
-  buttons_{&shuffle_, &enter_, &restart_, &swap_, &skip_, &hint_, &close_},
-  scoreboard_(rend, assets),
-  player_word_outliner_{rend, assets},
-  computer_word_outliner_{rend, assets},
-  game_over_{rend, mouse, manager, *this, assets, button_maker},
-  counter_{rend, assets, tile_bag_.tiles_view()}
+  buttons_{
+    shuffle_,
+    {assets.get(TextureType::ENTER_BUTTON), kEnterButtonRect, std::bind_front(&Playing::play_turn, this)}, // Enter
+    {button_maker.make_text_button(Game::renderer(), "Restart", kRestartButtonRect, std::bind_front(&Playing::ask_to_restart, this))}, // Restart
+    {button_maker.make_text_button(Game::renderer(), "Swap", kSwapButtonRect, [this]{tile_swapper_.ask(get_snapshot(false), rack_.get_tiles());})}, //Swap
+    {button_maker.make_text_button(Game::renderer(), "Skip", kSkipButtonRect, std::bind_front(&Playing::skip_turn, this))}, // Skip
+    {button_maker.make_text_button(Game::renderer(), "Hint", kHintButtonRect, std::bind_front(&Playing::put_best_move, this))}, // Hint 
+    {assets.get(TextureType::X_BUTTON), kCloseButtonRect, [this]{ confirm_dialog_.ask("Exit to Main Menu?", &Game::pop_until<MainMenu>);}} // Close
+  }, 
+  scoreboard_(Game::renderer(), assets),
+  player_word_outliner_{Game::renderer(), assets},
+  computer_word_outliner_{Game::renderer(), assets},
+  game_over_{*this, assets, button_maker},
+  counter_{Game::renderer(), assets, tile_bag_.tiles_view()}
 {
-  std::ignore = glz::read_binary_untagged(dictionary_, b::embed<"assets/dict.bin">().vec());
-  enter_.disable();
+  utility::log("Loading dictionary...");
+  std::ignore = glz::read_binary_untagged(dictionary_, b::embed<"assets/dict.bin">().view());
+  utility::log("Dictionary loaded");
+  buttons_[ENTER].disable();
   tile_bag_.shuffle();
   fill_player_rack();
   fill_computer_rack();
+  utility::log("Playing state initialized");
   players_turn_ ? start_player_turn() : play_opponent_turn();
 }
 
 void Playing::show_shuffle_button() {
-  buttons_[0] = &shuffle_;
+  buttons_[SHUFFLE_OR_RECALL] = shuffle_;
 }
 
 void Playing::show_recall_button() {
-  buttons_[0] = &recall_;
+  buttons_[SHUFFLE_OR_RECALL] = recall_;
 }
 
 Tile *Playing::take_tile()  {
-  Tile *tile = rack_.take_from(mouse_pos());
+  Tile *tile = rack_.take_from(Mouse::pos());
   if (tile != nullptr) {
     picked_up_from_ = RACK;
-  } else if (tile = board_.take_from_board(mouse_pos()); tile != nullptr) {
+  } else if (tile = board_.take_from_board(Mouse::pos()); tile != nullptr) {
     picked_up_from_ = BOARD;
   }
   return tile;
 }
 
 const Button* Playing::button_at_pos() const  {
-  if(const auto button = std::ranges::find_if(buttons_, [this](const auto& btn){ 
-      return contains(btn->rectangle(), mouse_pos()) and btn->is_enabled(); }); button!=buttons_.end()) {
-    return *button;
+  if(const auto button = std::ranges::find_if(buttons_, [](const auto& btn) static { 
+      return contains(btn.rectangle(), Mouse::pos()) and btn.is_enabled(); }); button!=buttons_.end()) {
+    return &*button;
   }
   return nullptr;
 }
@@ -118,38 +131,17 @@ void Playing::click_button() const  {
   }
 }
 
-void Playing::handle_hovering()  {
-  if (hovered_ != nullptr) {
-    hovered_->unhover();
-  }
-  const bool hovering =
-      (hovered_ = board_.tile_at_pos(mouse_pos())) != nullptr or
-      ((hovered_ = rack_.tile_at_pos(mouse_pos()))) != nullptr or
-      ((hovered_ = button_at_pos())) != nullptr;
-  if (hovering) {
-    if (not mouse_down_) {
-      hovered_->hover();
-    }
-    set_hand_cursor();
-  } else {
-    set_default_cursor();
-  }
-}
-
 void Playing::render_objects() const {
-  background_.render(renderer());
+  SDL_RenderCopy(Game::renderer(), background_, nullptr, nullptr);
   board_.render();
-  if (display_player_points_) {
-    player_word_outliner_.render();
-  } else if (display_computer_points_) {
-    computer_word_outliner_.render();
-  }
-  rack_.render(renderer());
-  std::ranges::for_each(buttons_, [this](auto* btn){btn->render(renderer());});
+  computer_word_outliner_.render();
+  player_word_outliner_.render();
+  rack_.render(Game::renderer());
+  std::ranges::for_each(buttons_, [](const auto& btn) static {btn.render(Game::renderer());});
   scoreboard_.render();
-  counter_.render(renderer());
+  counter_.render(Game::renderer());
   if (selected_tile_ != nullptr) {
-    selected_tile_->render(renderer());
+    selected_tile_->render(Game::renderer());
   }
 }
 
@@ -168,27 +160,20 @@ void Playing::fill_computer_rack() {
 }
 
 void Playing::restart_game() {
-  std::vector<Tile> tiles_to_put_back;
-  tiles_to_put_back.reserve(rack_.num_of_tiles() + board_.num_of_tiles() + computer_tiles_.size());
-  while (not board_.empty()) {
-    tiles_to_put_back.push_back(board_.take_tile());
-  }
-  while (not rack_.empty()) {
-    tiles_to_put_back.push_back(rack_.take_tile());
-  }
-  tiles_to_put_back.insert(tiles_to_put_back.end(), computer_tiles_.begin(), computer_tiles_.end());
   computer_tiles_.clear();
-  counter_.reset(renderer());
-  tile_bag_.put_tiles(std::move(tiles_to_put_back));
-  tile_bag_.shuffle();
+  counter_.reset(Game::renderer());
+  tile_bag_.reset();
   assert(tile_bag_.tiles_left() == constants::kBagTileAmount);
   board_.reset();
+  rack_.reset();
   saved_best_move_.reset();
   scoreboard_.reset();
   fill_player_rack();
   fill_computer_rack();
   show_shuffle_button();
-  player_used_hints_ = display_player_points_ = display_computer_points_ = false;
+  player_used_hints_ =  false;
+  player_word_outliner_.set_hidden(true);
+  computer_word_outliner_.set_hidden(true);
   skipped_turns_in_a_row_ = 0;
   players_turn_ = Random::coin_flip();
   players_turn_ ? start_player_turn() : play_opponent_turn();
@@ -200,8 +185,9 @@ void Playing::recall_tiles() {
     rack_.put(board_.take_oldest_placed());
   }
   show_shuffle_button();
-  enter_.disable();
-  player_has_valid_placement_ = display_player_points_ = false;
+  buttons_[ENTER].disable();
+  player_has_valid_placement_ = false;
+  computer_word_outliner_.set_hidden(scoreboard_.get_score(Scoreboard::Player::COMPUTER) == 0);
 }
 
 void Playing::ask_to_restart() {
@@ -212,7 +198,7 @@ void Playing::ask_to_restart() {
   }
 }
 
-void Playing::swap_tiles(const std::bitset<constants::kRackTileAmount> &positions) {
+void Playing::swap_tiles(std::bitset<constants::kRackTileAmount> positions) {
   assert(players_turn_);
   std::vector<Tile> unwanted_tiles;
   unwanted_tiles.reserve(positions.count());
@@ -221,85 +207,104 @@ void Playing::swap_tiles(const std::bitset<constants::kRackTileAmount> &position
       unwanted_tiles.push_back(rack_.take_tile(i));
     }
   }
-  fill_player_rack();
-  tile_bag_.put_tiles(std::move(unwanted_tiles));
-  tile_bag_.shuffle();
+  auto new_tiles = tile_bag_.swap(unwanted_tiles);
+  std::ranges::for_each(new_tiles, [this](const Tile& tile){rack_.put(tile);});
   switch_turns();
 }
 
 void Playing::play_turn() {
   assert(players_turn_);
   int word_value = player_word_outliner_.get_last_displayed();
+  utility::log("Player plays word(s) worth {} points", word_value);
   skipped_turns_in_a_row_ = 0;
   scoreboard_.add_score(Scoreboard::Player::HUMAN, word_value);
+  counter_.update_count(Game::renderer(), board_.recently_placed_view());
   board_.play_placed_tiles(true);
   fill_player_rack();
+  show_shuffle_button();
   switch_turns();
 }
 
 Texture Playing::get_snapshot(bool capture_rack) {
-  const auto render_buttons = [this](auto&& buttons) {
-    std::ranges::for_each(buttons, [this](const auto* btn) { btn->render(renderer());});
+  const auto render_buttons = [](auto& buttons) static {
+    std::ranges::for_each(buttons, [](const auto& btn) static { btn.render(Game::renderer());});
   };
-  Texture result{SDL_CreateTexture(renderer(), SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET,
+  Texture result{SDL_CreateTexture(Game::renderer(), SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET,
       constants::kWindowWidth, constants::kWindowHeight)};
-  SDL_SetRenderTarget(renderer(), result.get());
-  background_.render(renderer());
+  SDL_SetRenderTarget(Game::renderer(), result.get());
+  SDL_RenderCopy(Game::renderer(), background_, nullptr, nullptr);
   if(capture_rack){
-    rack_.render(renderer());
+    rack_.render(Game::renderer());
     render_buttons(buttons_);
   } else {
-    render_buttons(buttons_ | std::views::filter([this](auto *btn) {
-      return btn != &shuffle_ and btn != &enter_ and btn != &recall_;
-    }));
+    auto no_rack_buttons = buttons_ |
+      std::views::enumerate |
+      std::views::filter([](auto&& pair) static {
+        return std::get<0>(pair) != SHUFFLE_OR_RECALL && std::get<0>(pair) != ENTER;
+      }) |
+      std::views::values;
+    render_buttons(no_rack_buttons);
   }
+  player_word_outliner_.render();
+  computer_word_outliner_.render();
   board_.render();
   scoreboard_.render();
-  counter_.render(renderer());
-  SDL_SetRenderTarget(renderer(), nullptr);
+  counter_.render(Game::renderer());
+  SDL_SetRenderTarget(Game::renderer(), nullptr);
   return result;
   }
 
 void Playing::switch_turns() {
   // conditions for the game to end
   if ((rack_.empty() or computer_tiles_.empty()) or (skipped_turns_in_a_row_ == kMaxSkipsInARow)) {
+    if constexpr(constants::debug) {
+      if(skipped_turns_in_a_row_ == kMaxSkipsInARow) {
+        utility::log("Max skips in a row limit ({}/{}) reached", skipped_turns_in_a_row_, kMaxSkipsInARow);
+      } else {
+        std::string_view player_to_empty = rack_.empty() ? "Player" : "Opponent";
+        utility::log("{} emptied all their tiles", player_to_empty);
+      }
+    }
     int player_score = scoreboard_.get_score(Scoreboard::Player::HUMAN);
     int computer_score = scoreboard_.get_score(Scoreboard::Player::COMPUTER);
-    auto player_vals = rack_.tile_view() | std::views::transform(&Tile::value);
-    auto computer_vals = computer_tiles_ | std::views::transform(&Tile::value);
-    auto player_sum = std::reduce(player_vals.begin(), player_vals.end());
-    auto computer_sum = std::reduce(computer_vals.begin(), computer_vals.end());
-    game_over_.show(player_score, computer_score, player_sum, computer_sum, player_used_hints_);
+    int player_rack_val = std::ranges::fold_left(rack_.tile_view() | std::views::transform(&Tile::value), 0, std::plus{});
+    int opp_rack_val = std::ranges::fold_left(computer_tiles_ | std::views::transform(&Tile::value), 0, std::plus{});
+    game_over_.show(player_score, computer_score, player_rack_val, opp_rack_val, player_used_hints_);
     return;
   }
-  counter_.update_count(renderer(), board_.already_played_view());
   players_turn_^=1U;
   saved_best_move_.reset();
   players_turn_ ? start_player_turn() : play_opponent_turn();
 }
 
 void Playing::start_player_turn() {
-  recall_tiles();
-  std::ranges::for_each(buttons_, [](auto btn){btn->enable();});
-  enter_.disable();
+  utility::log("Player turn start");
+  std::ranges::for_each(buttons_, [](auto& btn){btn.enable();});
+  buttons_[ENTER].disable();
 }
 
 void Playing::play_opponent_turn() {
+  utility::log("Opponent turn start");
   assert(not board_.has_recently_placed_tiles());
-  display_player_points_ = player_has_valid_placement_ = false;
-  for(auto& btn: buttons_) {
-    if (btn == &shuffle_ || btn == &restart_ || btn == &recall_) {
+  player_has_valid_placement_ = false;
+  player_word_outliner_.set_hidden(true);
+  for(auto [index, button] : std::views::enumerate(buttons_)) {
+    if (index == SHUFFLE_OR_RECALL || index == RESTART) {
       continue;
     }
-    btn->disable();
+    button.disable();
   }
   assert(not saved_best_move_);
   saved_best_move_.emplace(solver_.get_best_move(computer_tiles_));
-  if(saved_best_move_->info.total_score==0){
+  if(saved_best_move_->info.score==0){
+    computer_word_outliner_.set_hidden(true);
     ++skipped_turns_in_a_row_;
+    utility::log("Opponent skips turn, {}/{} allowed skips in a row", skipped_turns_in_a_row_, kMaxSkipsInARow);
     switch_turns();
     return;
   }
+  utility::log("Opponent plays word(s) worth {} points", saved_best_move_->info.score);
+  computer_word_outliner_.set_hidden(false);
   for(auto [pos, letter, is_blank] : saved_best_move_->tiles) {
     auto it = std::ranges::find(computer_tiles_, is_blank ? constants::kTileBlankChar : letter, &Tile::letter);
     assert(it!=computer_tiles_.end());
@@ -307,14 +312,14 @@ void Playing::play_opponent_turn() {
     if (is_blank) {
       blank_replacer_.replace_blank(pos, letter);
     }
-    computer_tiles_.erase(it);
+    std::iter_swap(it, computer_tiles_.rbegin()); computer_tiles_.pop_back();
   }
-  auto [_, total_score, word_begin_pos, word_end_pos] = saved_best_move_->info;
+  auto [word_begin_pos, word_end_pos, total_score] = saved_best_move_->info;
   scoreboard_.add_score(Scoreboard::Player::COMPUTER, total_score);
   SDL_Point begin = to_point(word_begin_pos);
   SDL_Point end = to_point(word_end_pos);
-  computer_word_outliner_.outline(begin, end,total_score);
-  display_computer_points_ = true;
+  computer_word_outliner_.outline(begin, end, total_score);
+  counter_.update_count(Game::renderer(), board_.recently_placed_view());
   board_.play_placed_tiles(false);
   fill_computer_rack();
   skipped_turns_in_a_row_ = 0;
@@ -324,34 +329,63 @@ void Playing::play_opponent_turn() {
 void Playing::skip_turn() {
   confirm_dialog_.ask("Skip your turn?", [this] {
     ++skipped_turns_in_a_row_;
+    utility::log("Skipping turn, {}/{} allowed skips in a row", skipped_turns_in_a_row_, kMaxSkipsInARow);
     recall_tiles();
     switch_turns();
   });
 }
 
+void Playing::handle_valid_placement(bool correct_words, Row_Col begin, Row_Col end, std::int32_t score) {
+  player_has_valid_placement_ = true;
+  player_word_outliner_.outline(to_point(begin), to_point(end), score, correct_words);
+  player_word_outliner_.set_hidden(score == 0);
+  computer_word_outliner_.set_hidden(player_word_outliner_.begin_pos() == computer_word_outliner_.begin_pos() || 
+      scoreboard_.get_score(Scoreboard::Player::COMPUTER) == 0);
+}
+
 void Playing::evaluate_board() {
-  auto results = solver_.get_board_evaluation(board_.placed_tile_positions());
-  player_has_valid_placement_ = display_player_points_ = results.has_value();
-  if(player_has_valid_placement_) {
-    auto [has_valid_words, points, begin, end] = *results;
-    has_valid_words and players_turn_ ? enter_.enable() : enter_.disable();
-    player_word_outliner_.outline(to_point(begin), to_point(end), points, has_valid_words);
+  Solver::Evaluation results = solver_.get_board_evaluation(board_.recently_placed_view());
+  if (results.has_value()) {
+    utility::log("Valid word(s) worth {} points", results->score);
+    handle_valid_placement(true, results->begin, results->end, results->score);
+    if (players_turn_){
+      buttons_[ENTER].enable();
+    }
   } else {
-    enter_.disable();
+    std::visit([this](auto&& error){
+      using T = std::remove_cvref_t<decltype(error)>;
+      if constexpr(std::same_as<T, Solver::InvalidPlacementError>) {
+        player_has_valid_placement_ = false;
+        player_word_outliner_.set_hidden(true);
+        utility::log("{}", invalid_placement_error_to_string(error));
+      }
+      else if constexpr(std::same_as<T, Solver::ValidPlacementInvalidWords>) {
+        handle_valid_placement(false, error.placement.begin, error.placement.end, error.placement.score);
+        utility::log("INVALID WORDS: {}", error.invalid_words);
+      } else {
+        static_assert(false, "Variant alternative not handled!");
+      }
+    }, results.error());
+    buttons_[ENTER].disable();
   }
 }
 
 void Playing::put_best_move() {
   // only calculate the best move once
   if(not saved_best_move_){
+    utility::log("Computing best move for player...");
     std::vector<Tile> no_gap_tiles{rack_.get_tiles()};
-    std::erase_if(no_gap_tiles, [](const Tile &tile) {
-      return tile.letter() == constants::kTileGapChar;
-    });
+    std::erase_if(no_gap_tiles, [](const Tile &tile) { return tile.letter == constants::kTileGapChar; });
     saved_best_move_.emplace(solver_.get_best_move(no_gap_tiles));
+    utility::log("Best move computed: worth {} points", saved_best_move_->info.score);
+  } else {
+    if constexpr(constants::debug) {
+      utility::log("Using already computed best move worth {} points", saved_best_move_->info.score);
+    }
   }
-  auto [_, total_score, word_begin_pos, word_end_pos] = saved_best_move_->info;
+  auto [word_begin_pos, word_end_pos, total_score] = saved_best_move_->info;
   if (total_score == 0) {
+    utility::log("Player cannot make any valid words!");
     return;
   }
   for(auto [pos, letter, is_blank] : saved_best_move_->tiles) {
@@ -366,22 +400,24 @@ void Playing::put_best_move() {
     SDL_Point begin = to_point(word_begin_pos);
     SDL_Point end = to_point(word_end_pos);
     player_word_outliner_.outline(begin, end, total_score, true);
-    enter_.enable();
-    player_used_hints_ = player_has_valid_placement_ = display_player_points_ = true;
-    display_computer_points_ = false;
+    buttons_[ENTER].enable();
+    player_used_hints_ = player_has_valid_placement_ = true;
+    player_word_outliner_.set_hidden(false);
+    if(computer_word_outliner_.begin_pos() == player_word_outliner_.begin_pos()){
+      computer_word_outliner_.set_hidden(true);
+    }
   }
 }
 
 void Playing::handle_event(const SDL_Event& event) {
   switch (event.type) {
     case SDL_MOUSEMOTION:
-      set_mouse_pos({.x = event.motion.x, .y = event.motion.y});
       if (selected_tile_ != nullptr) {
-        selected_tile_->move(mouse_pos() - tile_offset_);
-        board_.put_shadow(mouse_pos());
-        (picked_up_from_ == RACK) ? rack_.swap_tiles(mouse_pos()) : rack_.make_room_for_tile(mouse_pos());
+        selected_tile_->move(Mouse::pos() - tile_offset_);
+        board_.put_shadow(Mouse::pos());
+        (picked_up_from_ == RACK) ? rack_.swap_tiles(Mouse::pos()) : rack_.make_room_for_tile(Mouse::pos());
       } else {
-        handle_hovering();
+        hovered_ = Mouse::handle_hovering(buttons_, rack_.tile_view(), board_.recently_placed_view());
       }
       return;
     case SDL_MOUSEBUTTONDOWN:
@@ -389,13 +425,11 @@ void Playing::handle_event(const SDL_Event& event) {
         return;
       }
       if (selected_tile_ = take_tile(); selected_tile_ != nullptr) {
-        display_player_points_ = false;
-        tile_offset_ = mouse_pos() - selected_tile_->point();
+        player_word_outliner_.set_hidden(true);
+        tile_offset_ = Mouse::pos() - selected_tile_->point();
         selected_tile_->unhover();
-      } else if (hovered_ != nullptr){
-        hovered_->unhover();
+        std::visit([](auto* hovered){hovered->unhover();}, hovered_); // can't be null because hovered_ == selected_tile
       }
-      mouse_down_ = true;
       return;
     case SDL_MOUSEBUTTONUP:
       if (event.button.button != SDL_BUTTON_LEFT) {
@@ -403,30 +437,28 @@ void Playing::handle_event(const SDL_Event& event) {
       }
       if (selected_tile_ == nullptr) {
         click_button();
-      } else if (rack_.put(mouse_pos(), *selected_tile_) or board_.put_on_board(*selected_tile_)) {
+      } else if (rack_.put(Mouse::pos(), *selected_tile_) or board_.put_on_board(*selected_tile_)) {
         evaluate_board();
       } else {
-        set_default_cursor();
+        Mouse::set_default_cursor();
         picked_up_from_ == RACK ? rack_.return_tile() : board_.return_tile();
       }
       if (board_.has_recently_placed_tiles()) {
         show_recall_button();
-        swap_.disable();
-        hint_.disable();
+        buttons_[SWAP].disable();
+        buttons_[HINT].disable();
       } else {
         show_shuffle_button();
         if (players_turn_){
-          swap_.enable();
-          hint_.enable();
+          buttons_[SWAP].enable();
+          buttons_[HINT].enable();
         }
       }
       selected_tile_ = nullptr;
-      mouse_down_ = false;
-      display_computer_points_ = skipped_turns_in_a_row_ == 0 and not board_.empty() and not board_.has_recently_placed_tiles();
-      display_player_points_ = player_has_valid_placement_;
+      player_word_outliner_.set_hidden(!player_has_valid_placement_);
       return;
     case SDL_KEYDOWN:
-      if (event.key.keysym.sym == SDLK_RETURN and enter_.is_enabled()) {
+      if (event.key.keysym.sym == SDLK_RETURN and buttons_[ENTER].is_enabled()) {
         play_turn();
       }
       return;

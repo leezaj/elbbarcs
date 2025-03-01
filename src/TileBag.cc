@@ -1,93 +1,109 @@
 #include "battery/embed.hpp"
 #include "Tile.h"
 #include "TileBag.h"
-#include "constants.h"
 #include "utility.h"
 #include <SDL2/SDL_render.h>
 #include <SDL_image.h>
 #include <algorithm>
 #include <cassert>
 #include <print>
-#include <vector>
+#include <ranges>
 
 namespace {
-struct TileInfo {
-  b::EmbedInternal::EmbeddedFile file;
-  char letter;
-  std::uint8_t frequency;
-  std::uint8_t value;
+constexpr std::array files{
+    b::embed<"assets/tiles/a.webp">(),
+    b::embed<"assets/tiles/b.webp">(),
+    b::embed<"assets/tiles/c.webp">(),
+    b::embed<"assets/tiles/d.webp">(),
+    b::embed<"assets/tiles/e.webp">(),
+    b::embed<"assets/tiles/f.webp">(),
+    b::embed<"assets/tiles/g.webp">(),
+    b::embed<"assets/tiles/h.webp">(),
+    b::embed<"assets/tiles/i.webp">(),
+    b::embed<"assets/tiles/j.webp">(),
+    b::embed<"assets/tiles/k.webp">(),
+    b::embed<"assets/tiles/l.webp">(),
+    b::embed<"assets/tiles/m.webp">(),
+    b::embed<"assets/tiles/n.webp">(),
+    b::embed<"assets/tiles/o.webp">(),
+    b::embed<"assets/tiles/p.webp">(),
+    b::embed<"assets/tiles/q.webp">(),
+    b::embed<"assets/tiles/r.webp">(),
+    b::embed<"assets/tiles/s.webp">(),
+    b::embed<"assets/tiles/t.webp">(),
+    b::embed<"assets/tiles/u.webp">(),
+    b::embed<"assets/tiles/v.webp">(),
+    b::embed<"assets/tiles/w.webp">(),
+    b::embed<"assets/tiles/x.webp">(),
+    b::embed<"assets/tiles/y.webp">(),
+    b::embed<"assets/tiles/z.webp">(),
+    b::embed<"assets/tiles/blank_tile.webp">()
 };
-} //namespace
+} // namespace
 
-
-void TileBag::load_tiles(SDL_Renderer* renderer) {
-  std::array<TileInfo, constants::kNumOfTiles> tile_infos{{
-      {b::embed<"assets/tiles/a.png">(), 'a', 9, 1},
-      {b::embed<"assets/tiles/b.png">(), 'b', 2, 3},
-      {b::embed<"assets/tiles/blank_tile.png">(), constants::kTileBlankChar, 2, 0}, 
-      {b::embed<"assets/tiles/c.png">(),'c', 2, 3},
-      {b::embed<"assets/tiles/d.png">(),'d', 4, 2},
-      {b::embed<"assets/tiles/e.png">(),'e', 12, 1},
-      {b::embed<"assets/tiles/f.png">(),'f', 2, 4},
-      {b::embed<"assets/tiles/g.png">(),'g', 3, 2},
-      {b::embed<"assets/tiles/h.png">(),'h', 2, 4},
-      {b::embed<"assets/tiles/i.png">(),'i', 9, 1},
-      {b::embed<"assets/tiles/j.png">(),'j', 1, 8},
-      {b::embed<"assets/tiles/k.png">(),'k', 1, 5},
-      {b::embed<"assets/tiles/l.png">(),'l', 4, 1},
-      {b::embed<"assets/tiles/m.png">(),'m', 2, 3},
-      {b::embed<"assets/tiles/n.png">(),'n', 6, 1},
-      {b::embed<"assets/tiles/o.png">(),'o', 8, 1},
-      {b::embed<"assets/tiles/p.png">(),'p', 2, 3},
-      {b::embed<"assets/tiles/q.png">(),'q', 1, 10},
-      {b::embed<"assets/tiles/r.png">(),'r', 6, 1},
-      {b::embed<"assets/tiles/s.png">(),'s', 4, 1},
-      {b::embed<"assets/tiles/t.png">(),'t', 6, 1},
-      {b::embed<"assets/tiles/u.png">(),'u', 4, 1},
-      {b::embed<"assets/tiles/v.png">(),'v', 2, 4},
-      {b::embed<"assets/tiles/w.png">(),'w', 2, 4},
-      {b::embed<"assets/tiles/x.png">(),'x', 1, 8},
-      {b::embed<"assets/tiles/y.png">(),'y', 2, 4},
-      {b::embed<"assets/tiles/z.png">(),'z', 1, 10},
-  }};
-  std::vector<Texture> textures;
-  textures.reserve(constants::kBagTileAmount);
-  std::vector<Tile> tiles;
-  tiles.reserve(constants::kBagTileAmount);
-  for(const auto& tile: tile_infos) {
-    RWops buffer {SDL_RWFromConstMem(tile.file.data(), static_cast<int>(tile.file.size()))};
-    Surface temp{IMG_Load_RW(buffer.get(), 0)};
-    for (auto i = 0; i < tile.frequency; ++i) {
-      textures.emplace_back(SDL_CreateTextureFromSurface(renderer, temp.get()));
-      tiles.emplace_back(textures.back().get(), SDL_Rect{.x = 0,
-                                                         .y = 0,
-                                                         .w = constants::kTileWidth,
-                                                         .h = constants::kTileHeight}, tile.letter, tile.value);
-    }
+namespace {
+  template <std::ranges::contiguous_range R>
+  constexpr auto iterator_at(R& range, size_t index) {
+    return std::next(range.begin(), static_cast<typename R::difference_type>(index));
   }
-  tile_textures_ = std::move(textures);
-  tile_bag_ = std::move(tiles);
-}
+} // namespace
 
 TileBag::TileBag(SDL_Renderer* renderer)
 {
-  load_tiles(renderer);
+  size_t current_idx = 0;
+  for(const auto& [asset, tile]: std::views::zip(files, constants::tile_info)) {
+    RWops buffer {SDL_RWFromConstMem(asset.data(), static_cast<int>(asset.size()))};
+    Surface temp{IMG_LoadWEBP_RW(buffer.get())};
+    for (auto i = 0; i < tile.frequency; ++i) {
+      tile_textures_[current_idx] = Texture(SDL_CreateTextureFromSurface(renderer, temp.get()));
+      tile_bag_[current_idx] = Tile(tile_textures_[current_idx].get(), 
+          SDL_Rect{ .x = 0, .y = 0, .w = constants::kTileWidth, .h = constants::kTileHeight}, tile.letter, tile.value);
+      ++current_idx;
+    }
+  }
+  utility::log("Tile bag initialized");
 }
 
 [[nodiscard]] Tile TileBag::take_from() {
-  Tile back = tile_bag_.back();
-  tile_bag_.pop_back();
-  return back;
+  return tile_bag_[take_from_index_++];
 }
 
 [[nodiscard]] size_t TileBag::tiles_left() const {
-  return tile_bag_.size();
+  return tile_bag_.size() - take_from_index_;
 }
 
-[[nodiscard]] bool TileBag::empty() const {return tile_bag_.empty();}
+[[nodiscard]] std::span<const Tile> TileBag::tiles_view() const {
+  return tile_bag_;
+}
 
-void TileBag::shuffle() {std::ranges::shuffle(tile_bag_, Random::engine);}
+[[nodiscard]] std::vector<Tile> TileBag::swap(std::span<const Tile> with) {
+  assert(tiles_left() >= with.size());
+  std::vector<Tile> result;
+  result.reserve(with.size());
+  auto current = iterator_at(tile_bag_, take_from_index_);
+  auto lookahead = current;
+  for(const Tile& existing: with) {
+    auto it = std::ranges::find(tile_bag_.begin(), current, existing.letter, &Tile::letter);
+    assert(it != tile_bag_.end());
+    result.push_back(*lookahead);
+    std::iter_swap(it, lookahead);
+    std::advance(lookahead, 1);
+    assert(lookahead != tile_bag_.end());
+  }
+  std::ranges::shuffle(current, tile_bag_.end(), Random::engine());
+  return result;
+}
 
-void TileBag::put_tiles(std::vector<Tile> tiles) {
-  tile_bag_.insert(tile_bag_.end(), tiles.begin(), tiles.end());
+void TileBag::reset() {
+  take_from_index_ = 0;
+  shuffle();
+}
+
+[[nodiscard]] bool TileBag::empty() const {
+  return take_from_index_ == tile_bag_.size();
+}
+
+void TileBag::shuffle() {
+  const auto current = iterator_at(tile_bag_, take_from_index_);
+  std::ranges::shuffle(current, tile_bag_.end(), Random::engine());
 }

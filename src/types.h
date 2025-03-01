@@ -10,8 +10,6 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_ttf.h>
 #include <memory>
-#include <stack>
-#include <vector>
 
 /**
  * @brief A struct that is templated with the non-type template
@@ -26,8 +24,6 @@ template <auto Function> struct Wrapper final {
   static void operator()(auto* obj) { Function(obj); }
 };
 
-class GameState;
-
 using Cursor = std::unique_ptr<SDL_Cursor, Wrapper<SDL_FreeCursor>>;
 using Font = std::unique_ptr<TTF_Font, Wrapper<TTF_CloseFont>>;
 using Renderer = std::unique_ptr<SDL_Renderer, Wrapper<SDL_DestroyRenderer>>;
@@ -35,7 +31,5 @@ using Surface = std::unique_ptr<SDL_Surface, Wrapper<SDL_FreeSurface>>;
 using Texture = std::unique_ptr<SDL_Texture, Wrapper<SDL_DestroyTexture>>;
 using Window = std::unique_ptr<SDL_Window, Wrapper<SDL_DestroyWindow>>;
 using RWops = std::unique_ptr<SDL_RWops, Wrapper<SDL_RWclose>>;
-
-using GameStateManager = std::stack<GameState*, std::vector<GameState*>>;
 
 #endif // TYPES_H

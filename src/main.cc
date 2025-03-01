@@ -8,9 +8,10 @@ void game_loop(void* arg) {
 #endif
 
 int main() {
+  utility::log("Starting {}", constants::kGameName);
   Game game;
   #ifdef __EMSCRIPTEN__
-  emscripten_set_main_loop_arg(&game_loop, &game, -1, true);
+  emscripten_set_main_loop_arg(&game_loop, &game, 0, true);
   #else
   game.run();
   #endif

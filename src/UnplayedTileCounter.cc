@@ -1,9 +1,7 @@
 #include "UnplayedTileCounter.h"
 #include "constants.h"
-#include <map>
+#include "utility.h"
 #include <ranges>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace {
 
@@ -17,105 +15,100 @@ constexpr auto kCounterFontSize = 22;
 constexpr SDL_Rect kRect{
     .x = 850,
     .y = 300,
-    .w = (kTileW + kWidthGap) * kTilesPerRow - kWidthGap,
-    .h = (kTileH + kHeightGap) * (kRows + 1) - kHeightGap};
+    .w = ((kTileW + kWidthGap) * kTilesPerRow) - kWidthGap,
+    .h = ((kTileH + kHeightGap) * (kRows + 1)) - kHeightGap};
 
 
-// the purpose of this is to order the blank tile after all letters no matter what its value actually is
-struct CharComparator {
-  static bool operator()(char first, char second) {
-    if (first == constants::kTileBlankChar) {
-      return false;
+constexpr std::array<SDL_Texture*, constants::kNumOfTiles> unique_textures(std::span<const Tile> tiles) {
+  std::array<SDL_Texture*, constants::kNumOfTiles> result;
+  char previously_seen = std::numeric_limits<char>::max();
+  for(size_t curr_idx = 0; const Tile& tile: tiles) {
+    if(auto letter = tile.letter; letter != previously_seen) {
+      result[curr_idx++] = tile.texture;
+      previously_seen = letter;
     }
-    if (second == constants::kTileBlankChar) {
-      return true;
-    }
-    return first < second;
   }
-};
+  return result;
+}
 
 } // namespace
 
 UnplayedTileCounter::UnplayedTileCounter(SDL_Renderer *renderer, const AssetPool &assets, std::span<const Tile> all_tiles) : 
+  UnplayedTileCounter{renderer, assets.get(FontType::LOWBALL), unique_textures(all_tiles)}
+{}
+
+UnplayedTileCounter::UnplayedTileCounter(SDL_Renderer* renderer, TTF_Font* counter_font, std::array<SDL_Texture*, constants::kNumOfTiles> unique_textures) :
   all_tiles_{SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, kRect.w, kRect.h)},
-  blacked_out_tiles_{SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, kRect.w, kRect.h)}
+  unavailable_shadows_{SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, kRect.w, kRect.h)},
+  texts_{
+    utility::generate_array<unique_textures.size()>( [renderer, counter_font, i = 0] mutable -> Text {
+        const int x = (kTileW + kWidthGap) * (i % kTilesPerRow);
+        const int y = (kTileH + kHeightGap) * (i / kTilesPerRow);
+        return Text{
+          renderer, counter_font, kCounterFontSize, SDL_Color{.r = 0, .g = 0, .b = 0, .a = 0}, 
+          std::to_string(constants::tile_info[static_cast<size_t>(i++)].frequency),
+          SDL_Point{.x = x + kRect.x + 2, .y = y + kRect.y}
+        };
+      })
+  }
 {
-  constexpr auto kBackgroundAlpha = 175U;
+  static constexpr auto kBackgroundAlpha = 175U;
   SDL_SetTextureBlendMode(all_tiles_.get(), SDL_BLENDMODE_BLEND);
-  SDL_SetTextureBlendMode(blacked_out_tiles_.get(), SDL_BLENDMODE_BLEND);
-  SDL_SetRenderTarget(renderer, blacked_out_tiles_.get());
+  SDL_SetTextureBlendMode(unavailable_shadows_.get(), SDL_BLENDMODE_BLEND);
+  SDL_SetRenderTarget(renderer, unavailable_shadows_.get());
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
   SDL_RenderClear(renderer);
   SDL_SetRenderTarget(renderer, all_tiles_.get());
   SDL_SetRenderDrawColor(renderer, constants::kFontColorBrown.r, constants::kFontColorBrown.g, constants::kFontColorBrown.b, kBackgroundAlpha);
   SDL_RenderClear(renderer);
-  SDL_SetRenderTarget(renderer, nullptr);
-  SDL_SetRenderDrawColor(renderer, 0, 0 ,0 ,0);
-  std::map<char, SDL_Texture*, CharComparator> letter_to_texture{};
-  original_freqs_.reserve(constants::kNumOfTiles);
-  counters_.reserve(constants::kNumOfTiles);
-  for(const Tile& tile: all_tiles) {
-    letter_to_texture.try_emplace(tile.letter(), tile.texture());
-    ++original_freqs_[tile.letter()];
+  for(SDL_Rect tile_rect{0, 0, kTileW, kTileH }; auto [texture, counter] : std::views::zip(unique_textures, texts_)) {
+    tile_rect.x = counter.x() - kRect.x -2; tile_rect.y = counter.y() - kRect.y;
+    SDL_RenderCopy(renderer, texture, nullptr, &tile_rect);
   }
-  auto *const counter_font = assets.get(FontType::LOWBALL);
-  SDL_Rect current_counter_rect{.x = 0, .y = 0, .w = kTileW, .h = kTileH};
-  SDL_SetRenderTarget(renderer, all_tiles_.get());
-  for(int idx = 0; auto [letter, texture] : letter_to_texture) {
-    auto frequency = original_freqs_.at(letter);
-    current_counter_rect.x = (kTileW + kWidthGap) * (idx % kTilesPerRow);
-    current_counter_rect.y = (kTileH + kHeightGap) * (idx / kTilesPerRow);
-    counters_.try_emplace(letter, renderer, counter_font, kCounterFontSize, SDL_Color{.r = 0, .g = 0, .b = 0, .a = 0},
-                          std::to_string(frequency),
-                          // we add +2 to the x of the number that it's not
-                          // right on the border of the tile (easier to read)
-                          SDL_Point{.x = current_counter_rect.x + kRect.x + 2,
-                                    .y = current_counter_rect.y + kRect.y});
-    SDL_RenderCopy(renderer, texture, nullptr, &current_counter_rect);
-    ++idx;
-  }
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
   SDL_SetRenderTarget(renderer, nullptr);
-  current_freqs_ = original_freqs_;
+  utility::log("Unplayed tiles counter initialized");
 }
 
-void UnplayedTileCounter::update_count(SDL_Renderer *renderer, std::span<const Tile> played_tiles) {
+void UnplayedTileCounter::update_count(SDL_Renderer *renderer, std::span<const Tile> recently_placed) {
   static constexpr SDL_Color shadow{.r = 0, .g = 0, .b = 0, .a = 100};
-  std::unordered_set<char> to_update{};
-  auto total = played_tiles.size();
-  to_update.reserve(total - already_checked_idx_);
-  for (; already_checked_idx_ < total; ++already_checked_idx_) {
-    char letter = played_tiles[already_checked_idx_].letter();
-    --current_freqs_[letter];
-    to_update.emplace(letter);
+  static constexpr auto get_idx = [](const Tile& tile){
+    return tile.value == 0 ? constants::kNumOfTiles-1 : static_cast<size_t>(tile.letter - 'a');
+  };
+  for (const Tile& tile : recently_placed) {
+    --infos_[get_idx(tile)].frequency;
   }
-  for (char letter : to_update) {
-    int new_freq = current_freqs_.at(letter);
-    Text &counter = counters_.at(letter);
+  for (const Tile& tile : recently_placed) {
+    int new_freq = infos_[get_idx(tile)].frequency;
+    Text &text = texts_[get_idx(tile)];
     if (new_freq == 0) {
-      // -2 to the x because we added 2 earlier
-      SDL_Rect black_shadow{.x = counter.x() - kRect.x - 2, .y = counter.y() - kRect.y, .w = kTileW, .h = kTileH};
-      SDL_SetRenderTarget(renderer, blacked_out_tiles_.get());
+      SDL_Rect black_shadow{.x = text.x() - kRect.x - 2, .y = text.y() - kRect.y, .w = kTileW, .h = kTileH};
+      SDL_SetRenderTarget(renderer, unavailable_shadows_.get());
       SDL_SetRenderDrawColor(renderer, shadow.r, shadow.g, shadow.b, shadow.a);
       SDL_RenderFillRect(renderer, &black_shadow);
       SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
       SDL_SetRenderTarget(renderer, nullptr);
     }
-    counter.update(renderer, std::to_string(new_freq));
+    text.update(renderer, std::to_string(new_freq));
   }
 }
 
 void UnplayedTileCounter::reset(SDL_Renderer* renderer) {
-  current_freqs_ = original_freqs_;
-  for(auto [letter, frequency]: current_freqs_) {
-    counters_.at(letter).update(renderer, std::to_string(frequency));
+  for(auto [current, original, text] : std::views::zip(infos_, constants::tile_info, texts_)) {
+    if(current.frequency != original.frequency){
+      text.update(renderer, std::to_string(original.frequency));
+      current.frequency = original.frequency;
+    }
   }
-  SDL_SetRenderTarget(renderer, blacked_out_tiles_.get());
+  SDL_SetRenderTarget(renderer, unavailable_shadows_.get());
   SDL_RenderClear(renderer);
   SDL_SetRenderTarget(renderer, nullptr);
-  already_checked_idx_ = 0;
 }
 
 void UnplayedTileCounter::render(SDL_Renderer* renderer) const {
   SDL_RenderCopy(renderer, all_tiles_.get(), nullptr, &kRect);
-  std::ranges::for_each( counters_ | std::views::values, [=](const Text &text) { text.render(renderer); });
-  SDL_RenderCopy(renderer, blacked_out_tiles_.get(), nullptr, &kRect);
+  for(const auto& text : texts_) {
+    text.render(renderer);
+  }
+  SDL_RenderCopy(renderer, unavailable_shadows_.get(), nullptr, &kRect);
 }

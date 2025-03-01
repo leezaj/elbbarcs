@@ -1,18 +1,17 @@
 #include "ButtonMaker.h"
 #include "constants.h"
+#include "utility.h"
 
 ButtonMaker::ButtonMaker(const AssetPool& assets):
-  font_{assets.get(FontType::MOULDY_CHEESE)}
+  font_{assets.get(FontType::MOULDY_CHEESE)},
+  wood_button_{IMG_LoadWEBP_RW(RWops{SDL_RWFromConstMem(kFile.data(), static_cast<int>(kFile.size()))}.get())}
 {
-  auto btn = b::embed<"assets/templates/wood_button.png">();
-  SDL_RWops* buffer = SDL_RWFromConstMem(btn.data(), static_cast<int>(btn.size()));
-  wood_button_ = Surface{IMG_Load_RW(buffer, 1)};
+  utility::log("Button maker initialized");
 }
 
-Button ButtonMaker::make_text_button(SDL_Renderer *rend, std::string_view text,
-                                     const SDL_Rect &position,
+Button ButtonMaker::make_text_button(SDL_Renderer *rend, std::string_view text, const SDL_Rect &position,
                                      std::function<void()> callback) {
-  static const auto kBtnH = wood_button_->h, kBtnW = wood_button_->w;
+  static thread_local const auto kBtnH = wood_button_->h, kBtnW = wood_button_->w;
   const Surface copy{SDL_CreateRGBSurface(0, kBtnW, kBtnH, 32, 
       constants::kRedMask, constants::kGreenMask, constants::kBlueMask, constants::kAlphaMask)};
   SDL_BlitSurface(wood_button_.get(), nullptr, copy.get(), nullptr);

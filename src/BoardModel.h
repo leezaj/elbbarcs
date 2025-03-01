@@ -10,11 +10,11 @@
 class BoardModel final {
 
 public:
-  inline static constexpr std::array<Row_Col, constants::kTotalSquares> all_positions = std::invoke([]{
+  static constexpr std::array<Row_Col, constants::kTotalSquares> all_positions = std::invoke([]static{
     std::array<Row_Col, constants::kTotalSquares> temp;
     // TODO: Replace with std::views::enumerate when clang supports it
     for(size_t index = 0; index < constants::kTotalSquares; ++index) {
-      temp[index] = {static_cast<int8_t>(index/constants::kSquareNum),static_cast<int8_t>(index%constants::kSquareNum)};
+      temp[index] = {.row = static_cast<int8_t>(index/constants::kSquareNum),.col = static_cast<int8_t>(index%constants::kSquareNum)};
     }
     return temp;
   });
@@ -43,9 +43,9 @@ public:
 
   [[nodiscard]] bool has_adjacent_played_tile(Row_Col row_col) const;
   
-  [[nodiscard]] int word_multiplier(Row_Col row_col) const; 
+  [[nodiscard]] std::uint8_t word_multiplier(Row_Col row_col) const;
   
-  [[nodiscard]] int letter_multiplier(Row_Col row_col) const;
+  [[nodiscard]] std::uint8_t letter_multiplier(Row_Col row_col) const;
 
   [[nodiscard]] bool has_already_played_tiles() const { return has_already_played_tiles_; }
 

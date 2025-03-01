@@ -12,9 +12,12 @@ public:
   /**
    * @brief Creates a wooden button. The ButtonMaker will own the texture that the Button internally points to.
    */
-  [[nodiscard]] Button make_text_button(SDL_Renderer *rend, std::string_view text, const SDL_Rect &position, std::function<void()> callback);
+  [[nodiscard]] Button make_text_button(SDL_Renderer *rend, std::string_view text, const SDL_Rect &position,
+                                        std::function<void()> callback);
 
 private:
+  static constexpr auto kFile = b::embed<"assets/templates/wood_button.webp">();
+
   TTF_Font* font_;
   std::vector<Texture> button_textures_;
   Surface wood_button_;

@@ -6,14 +6,9 @@
 #include <SDL2/SDL_video.h>
 
 Game::Game() : 
-  window_{SDL_CreateWindow("Elbbarcs", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
-                           constants::kWindowWidth, constants::kWindowHeight, SDL_WINDOW_RESIZABLE)},
-  renderer_{SDL_CreateRenderer(window_.get(), -1, 0)},
-  mouse_{{ .default_cursor = Cursor{SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW)},
-           .hand_cursor = Cursor{SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND)} }},
   assets_{renderer_.get()},
   button_maker_{assets_},
-  main_menu_state_{renderer_.get(),mouse_,assets_,state_manager_,button_maker_}
+  main_menu_state_{assets_,button_maker_}
 {
   SDL_RenderSetLogicalSize(renderer_.get(), constants::kWindowWidth, constants::kWindowHeight);
   state_manager_.push(&(main_menu_state_));
@@ -31,9 +26,9 @@ void Game::run() noexcept {
   #endif
 }
 
-void Game::render() const {
+void Game::render() {
   SDL_RenderClear(renderer_.get());
-  state_manager_.top()->render_objects();
+  state_manager_.render_current_state();
   SDL_RenderPresent(renderer_.get());
 }
 
@@ -56,9 +51,14 @@ void Game::process_events() {
     switch(event_.type) {
       [[unlikely]] case SDL_QUIT:
         is_running_ = false;
-        break;
-      [[likely]] default:
-        state_manager_.top()->handle_event(event_);
+        utility::log("Quit signal received");
+        return;
+      case SDL_MOUSEMOTION:
+        Mouse::pos_.x = event_.motion.x;
+        Mouse::pos_.y = event_.motion.y;
+        [[fallthrough]];
+      default:
+        state_manager_.current_state_handle_event(event_);
         break;
     }
   }
