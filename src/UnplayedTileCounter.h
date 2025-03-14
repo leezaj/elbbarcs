@@ -17,9 +17,10 @@ public:
 
   void reset(SDL_Renderer* renderer);
 private:
-  std::array<constants::TileInfo, constants::kNumOfTiles> infos{constants::tile_info};
-  std::vector<Text> texts;
+  UnplayedTileCounter(SDL_Renderer* renderer, TTF_Font* counter_font, std::array<SDL_Texture*, constants::kNumOfTiles> unique_textures);
   Texture all_tiles_, unavailable_shadows_;
+  std::array<constants::TileInfo, constants::kNumOfTiles> infos_{constants::tile_info};
+  std::array<Text, constants::kNumOfTiles> texts_;
 };
 
 #endif //UNPLAYEDTILECOUNTER_H

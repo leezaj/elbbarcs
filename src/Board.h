@@ -21,8 +21,6 @@ public:
 
   void return_tile();
 
-  [[nodiscard]] const Tile* tile_at_pos(SDL_Point point) const;
-
   [[nodiscard]] Tile* take_from_board(SDL_Point point);
 
   [[nodiscard]] Tile take_oldest_placed();
@@ -33,7 +31,7 @@ public:
 
   [[nodiscard]] bool has_recently_placed_tiles() const;
 
-  [[nodiscard]] std::span<const Tile> recently_placed_view() const { return recently_placed_; }
+  [[nodiscard]] std::span<Tile> recently_placed_view() { return recently_placed_; }
 
   [[nodiscard]] const BoardModel& get_model() {return model_;}
 

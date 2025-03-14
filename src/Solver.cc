@@ -399,7 +399,7 @@ void Solver::make_cross_checks(Direction dir) {
 Solver::Solution Solver::get_best_move(std::span<const Tile> rack) {
   static constexpr std::array<Direction, 2> all_directions{ACROSS,DOWN};
   const std::vector<TileData> tiles = utility::map(rack, [](const Tile& tile) static { 
-    return TileData{.letter = tile.letter(), .value = tile.value()}; 
+    return TileData{.letter = tile.letter, .value = tile.value}; 
   });
   solution_.info = {};
   solution_.tiles.clear();

@@ -1,7 +1,6 @@
 #include "battery/embed.hpp"
 #include "Tile.h"
 #include "TileBag.h"
-#include "constants.h"
 #include "utility.h"
 #include <SDL2/SDL_render.h>
 #include <SDL_image.h>
@@ -9,6 +8,38 @@
 #include <cassert>
 #include <print>
 #include <ranges>
+
+namespace {
+constexpr std::array files{
+    b::embed<"assets/tiles/a.webp">(),
+    b::embed<"assets/tiles/b.webp">(),
+    b::embed<"assets/tiles/c.webp">(),
+    b::embed<"assets/tiles/d.webp">(),
+    b::embed<"assets/tiles/e.webp">(),
+    b::embed<"assets/tiles/f.webp">(),
+    b::embed<"assets/tiles/g.webp">(),
+    b::embed<"assets/tiles/h.webp">(),
+    b::embed<"assets/tiles/i.webp">(),
+    b::embed<"assets/tiles/j.webp">(),
+    b::embed<"assets/tiles/k.webp">(),
+    b::embed<"assets/tiles/l.webp">(),
+    b::embed<"assets/tiles/m.webp">(),
+    b::embed<"assets/tiles/n.webp">(),
+    b::embed<"assets/tiles/o.webp">(),
+    b::embed<"assets/tiles/p.webp">(),
+    b::embed<"assets/tiles/q.webp">(),
+    b::embed<"assets/tiles/r.webp">(),
+    b::embed<"assets/tiles/s.webp">(),
+    b::embed<"assets/tiles/t.webp">(),
+    b::embed<"assets/tiles/u.webp">(),
+    b::embed<"assets/tiles/v.webp">(),
+    b::embed<"assets/tiles/w.webp">(),
+    b::embed<"assets/tiles/x.webp">(),
+    b::embed<"assets/tiles/y.webp">(),
+    b::embed<"assets/tiles/z.webp">(),
+    b::embed<"assets/tiles/blank_tile.webp">()
+};
+} // namespace
 
 namespace {
   template <std::ranges::contiguous_range R>
@@ -19,39 +50,10 @@ namespace {
 
 TileBag::TileBag(SDL_Renderer* renderer)
 {
-  std::array<b::EmbedInternal::EmbeddedFile, constants::kNumOfTiles> files{{
-      b::embed<"assets/tiles/a.png">(),
-      b::embed<"assets/tiles/b.png">(),
-      b::embed<"assets/tiles/c.png">(),
-      b::embed<"assets/tiles/d.png">(),
-      b::embed<"assets/tiles/e.png">(),
-      b::embed<"assets/tiles/f.png">(),
-      b::embed<"assets/tiles/g.png">(),
-      b::embed<"assets/tiles/h.png">(),
-      b::embed<"assets/tiles/i.png">(),
-      b::embed<"assets/tiles/j.png">(),
-      b::embed<"assets/tiles/k.png">(),
-      b::embed<"assets/tiles/l.png">(),
-      b::embed<"assets/tiles/m.png">(),
-      b::embed<"assets/tiles/n.png">(),
-      b::embed<"assets/tiles/o.png">(),
-      b::embed<"assets/tiles/p.png">(),
-      b::embed<"assets/tiles/q.png">(),
-      b::embed<"assets/tiles/r.png">(),
-      b::embed<"assets/tiles/s.png">(),
-      b::embed<"assets/tiles/t.png">(),
-      b::embed<"assets/tiles/u.png">(),
-      b::embed<"assets/tiles/v.png">(),
-      b::embed<"assets/tiles/w.png">(),
-      b::embed<"assets/tiles/x.png">(),
-      b::embed<"assets/tiles/y.png">(),
-      b::embed<"assets/tiles/z.png">(),
-      b::embed<"assets/tiles/blank_tile.png">()
-  }};
   size_t current_idx = 0;
   for(const auto& [asset, tile]: std::views::zip(files, constants::tile_info)) {
     RWops buffer {SDL_RWFromConstMem(asset.data(), static_cast<int>(asset.size()))};
-    Surface temp{IMG_Load_RW(buffer.get(), 0)};
+    Surface temp{IMG_LoadWEBP_RW(buffer.get())};
     for (auto i = 0; i < tile.frequency; ++i) {
       tile_textures_[current_idx] = Texture(SDL_CreateTextureFromSurface(renderer, temp.get()));
       tile_bag_[current_idx] = Tile(tile_textures_[current_idx].get(), 
@@ -81,7 +83,7 @@ TileBag::TileBag(SDL_Renderer* renderer)
   auto current = iterator_at(tile_bag_, take_from_index_);
   auto lookahead = current;
   for(const Tile& existing: with) {
-    auto it = std::ranges::find(tile_bag_.begin(), current, existing.letter(), &Tile::letter);
+    auto it = std::ranges::find(tile_bag_.begin(), current, existing.letter, &Tile::letter);
     assert(it != tile_bag_.end());
     result.push_back(*lookahead);
     std::iter_swap(it, lookahead);

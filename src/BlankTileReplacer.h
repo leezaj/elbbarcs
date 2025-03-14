@@ -1,8 +1,8 @@
 #ifndef BlankTileReplacer_H
 #define BlankTileReplacer_H
 
-#include "BoardModel.h"
-#include "GameState.h"
+#include "types.h"
+#include "RowCol.h"
 #include "Tile.h"
 
 class Board;
@@ -14,19 +14,19 @@ class Playing;
  * board. The user is required to choose a letter to replace the blank tile.
  *
  */
-class BlankTileReplacer final : public GameState {
+class BlankTileReplacer final {
 public:
-  BlankTileReplacer(SDL_Renderer *rend, Mouse& mouse, GameStateManager& manager, Board& board, Playing& playing_state);
+  BlankTileReplacer(Board& board, Playing& playing_state);
 
   /**
    * @copydoc GameState::render_objects()
    */
-  void render_objects() const final;
+  void render_objects() const;
 
   /**
    * @copydoc GameState::handle_event(const SDL_Event& event)
    */
-  void handle_event(const SDL_Event& event) final;
+  void handle_event(const SDL_Event& event);
 
   void replace_blank();
 
@@ -39,13 +39,12 @@ public:
 private:
   void load_tiles(SDL_Renderer* renderer);
 
-  std::vector<Texture> blanks_textures_;
-  std::vector<Tile> blanks_tiles_;
+  std::array<Texture, constants::kNumOfTiles-1> blanks_textures_;
+  std::array<Tile, constants::kNumOfTiles-1> blanks_tiles_;
   Texture bg_texture_;
   Tile* hovered_tile_{};
-  GameStateManager* state_manager_{};
   Board* board_{} ;
-  Playing* playing_state_;
+  Playing* playing_state_{};
 };
 
 #endif // BlankTileReplacer_H

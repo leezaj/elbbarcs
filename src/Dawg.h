@@ -63,6 +63,7 @@ public:
   }
 
   [[nodiscard]] const Node* lookup_prefix(const auto& query) const {
+    //query == ding
     const Node *current = root();
     for (char ch : query) {
       if (const Node *next = search_edges_for(current, ch); next != nullptr) {

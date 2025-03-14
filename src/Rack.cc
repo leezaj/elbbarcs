@@ -26,7 +26,8 @@ std::uint8_t index_of(auto& container, const auto& it) {
 } // namespace
 
 Rack::Rack(SDL_Renderer *renderer) : 
-  missing_tile_texture_{SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, constants::kTileWidth, constants::kTileHeight)} 
+  missing_tile_texture_{SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, constants::kTileWidth, constants::kTileHeight)},
+  tiles_{utility::map<utility::to_array>(constants::kRackTilePositions, [this](SDL_Point point){ return create_gap_at(point); })}
 {
   SDL_SetTextureBlendMode(missing_tile_texture_.get(), SDL_BLENDMODE_BLEND);
   SDL_SetRenderTarget(renderer, missing_tile_texture_.get());
@@ -65,17 +66,12 @@ Tile *Rack::find_tile(SDL_Point point) {
     return nullptr;
   }
   Tile& tile = tiles_[get_tile_idx(point)];
-  return (tile.letter() != constants::kTileGapChar and contains(tile.rectangle(), point)) ? &tile : nullptr;
+  return (tile.letter != constants::kTileGapChar and contains(tile.rect, point)) ? &tile : nullptr;
 }
 
-const Tile* Rack::tile_at_pos(SDL_Point point) noexcept{
-  return find_tile(point);
-}
-
-Tile *Rack::take_from(SDL_Point point) {
+Tile* Rack::take_from(SDL_Point point) {
   if(Tile* it = find_tile(point); it!=nullptr){
-    taken_ = *it;
-    *it = create_gap_at(it->point());
+    taken_ = std::exchange(*it, create_gap_at(it->point()));
     taken_idx_ = static_cast<std::uint8_t>(std::distance(tiles_.data(), it));
     return &taken_;
   }
@@ -121,7 +117,7 @@ size_t Rack::num_of_tiles() const {
 }
 
 Tile Rack::take_tile(std::uint32_t idx) {
-  assert(idx<tiles_.size() and tiles_[idx].letter() != constants::kTileGapChar);
+  assert(idx<tiles_.size() and tiles_[idx].letter != constants::kTileGapChar);
   return std::exchange(tiles_[idx], create_gap_at(tiles_[idx].point()));
 }
 

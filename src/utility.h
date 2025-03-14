@@ -4,15 +4,15 @@
 #include <SDL2/SDL_rect.h>
 #include <array>
 #include <bit>
+#include <chrono>
+#include <format>
 #include <functional>
+#include <print>
 #include <random>
 #include <ranges>
+#include <source_location>
 
 #include "constants.h"
-#include <format>
-#include <print>
-#include <source_location>
-#include <chrono>
 
 [[nodiscard]] constexpr SDL_Point operator-(SDL_Point p1, SDL_Point p2) {
   return SDL_Point{.x = p1.x - p2.x, .y = p1.y - p2.y};
@@ -54,14 +54,17 @@ struct std::formatter<std::vector<T>> {
     }
 };
 
-namespace utility::impl {
+namespace utility{
+
+namespace impl{
+
 class xoshiro256pp { // https://en.wikipedia.org/wiki/Xorshift#xoshiro256++
 private:
   std::array<std::uint64_t, 4> state_;
 public:
   using result_type = std::uint64_t;
 
-  explicit xoshiro256pp(std::uint64_t seed = std::random_device{}()) {
+  constexpr explicit xoshiro256pp(std::uint64_t seed = std::random_device{}()) {
     std::seed_seq seq{seed, seed+1, seed+2, seed+3};
     seq.generate(state_.begin(), state_.end());
   }
@@ -85,46 +88,49 @@ public:
     static constexpr uint64_t max() { return std::numeric_limits<std::uint64_t>::max(); }
 };
 static_assert(std::uniform_random_bit_generator<xoshiro256pp>);
-} // namespace utility::impl
-
-namespace Random {
-  inline utility::impl::xoshiro256pp& engine() {
-    static thread_local utility::impl::xoshiro256pp engine{};
-    return engine;
-  }
-  [[nodiscard]] inline bool coin_flip() {
-    return std::bernoulli_distribution{}(engine());
-  }
-} //namespace Random
-
-namespace utility{
-
-namespace impl{
-
-template <typename T>
-concept IsNotVoid = !std::is_void_v<T>;
-
-template<typename MappingFunction, typename Range>
-using MappedType = std::invoke_result_t<MappingFunction, std::ranges::range_value_t<Range>>;
 
 constexpr std::string_view get_filename(std::string_view path) {
-  size_t last_slash = path.find_last_of('/');
-  if (last_slash == std::string_view::npos) {
-    return path;
+  if (size_t last_slash = path.find_last_of('/'); last_slash != std::string_view::npos) {
+    return path.substr(last_slash + 1);
   }
-  return path.substr(last_slash + 1);
+  return path;
 }
 
 struct format_string {
-    consteval format_string(char const* str, std::source_location sloc = std::source_location::current()) : 
-      str_{str} , sloc_{sloc}
-    {}
+  consteval format_string(char const* str, std::source_location sloc = std::source_location::current()) : 
+    str_{str} , sloc_{sloc}
+  {}
 
-    char const* str_;
-    std::source_location sloc_;
+  char const* str_;
+  std::source_location sloc_;
+};
+
+// example: variant<int, char, char, double, int, int, int, double> -> variant<int, char, double>
+template <template <typename ...> typename T, typename ... Ts>
+struct deduplicate {
+  using type = T<Ts...>;
+
+  template<typename U>
+  using result_t = std::conditional_t<
+    std::disjunction_v<std::is_same<Ts, U>...>, 
+    deduplicate<T, Ts...>, 
+    deduplicate<T, Ts..., U>
+  >;
+
+  template<typename U>
+  consteval result_t<U> operator+(std::type_identity<U>);
 };
 
 } // namespace impl
+
+template <typename ... Ts>
+using first_t = std::tuple_element_t<0, std::tuple<Ts...>>;
+
+template<template <typename...> typename T, typename... Ts> requires (sizeof...(Ts) != 0)
+using deduplicate = decltype((impl::deduplicate<T, first_t<Ts...>>() + ... + std::type_identity<Ts>()))::type;
+
+template<typename ... Ts>
+concept all_same = (std::same_as<first_t<Ts...>, Ts> && ...);
 
 template <typename... Args>
 constexpr void log(impl::format_string fmt, Args&&... args) noexcept {
@@ -138,16 +144,56 @@ constexpr void log(impl::format_string fmt, Args&&... args) noexcept {
   }
 }
 
-template <template <typename...> typename Container = std::vector, typename R, typename F>
-requires std::ranges::input_range<R> && std::regular_invocable<F, std::ranges::range_value_t<R>> &&
-requires(std::ranges::range_value_t<R> value, F function){
-  {std::invoke(function, value)} -> impl::IsNotVoid;
-}
-[[nodiscard]] constexpr auto map(R&& range, F&& transform_func) {
-  using T = impl::MappedType<F,R>;
-  return std::forward<R>(range) | std::views::transform(std::forward<F>(transform_func)) | std::ranges::to<Container<T>>();
+template <template <typename...> typename Container = std::vector, std::ranges::input_range R, typename F>
+[[nodiscard]] constexpr auto map(R&& range, F&& transform) noexcept {
+  using result_type = std::remove_cvref_t<std::invoke_result_t<F, std::ranges::range_value_t<R>>>;
+  static_assert(not std::is_void_v<result_type>, "Mapping function F must not return void!");
+
+  return std::forward<R>(range) | std::views::transform(std::forward<F>(transform)) | std::ranges::to<Container<result_type>>();
 }
 
+// Specialization sentinel for map<array>: we can't use `std::array` as a template due to its NTTP
+struct to_array {};
+
+template<typename Sentinel, std::ranges::input_range R, typename F> 
+requires std::same_as<Sentinel, to_array> && std::regular_invocable<F, std::ranges::range_value_t<R>>
+[[nodiscard]] constexpr auto map(const R& range, F&& transform_func) noexcept {
+  using result_type = std::remove_cvref_t<std::invoke_result_t<F, std::ranges::range_value_t<R>>>;
+  static_assert(not std::is_void_v<result_type>, "Mapping function F must not return void!");
+
+  return [&transform_func, it = range.begin()]
+    <size_t... Is>( std::index_sequence<Is...>) mutable {
+      return std::array<result_type, sizeof...(Is)>{ ((void)Is, std::invoke(std::forward<F>(transform_func), *(it++)))...};
+  }(std::make_index_sequence<range.size()>{});
+}
+
+template<size_t N, typename F> requires std::regular_invocable<F>
+[[nodiscard]] constexpr auto generate_array(F&& generator) noexcept {
+  using result_type = std::remove_cvref_t<std::invoke_result_t<F>>;
+  static_assert(not std::is_void_v<result_type>, "Generating function F must not return void!");
+  return [func = std::forward<F>(generator)]<typename Self, size_t... Is> (this Self&&, std::index_sequence<Is...>) 
+    { 
+      return std::array<result_type, N>{ ((void)Is, std::invoke(std::forward<F>(func)))... }; 
+    } (std::make_index_sequence<N>{});
+}
+
+template<typename ... Ts>
+struct Overload : Ts ... {
+    using Ts::operator() ...;
+};
+
 } // namespace utility
+
+namespace Random {
+
+inline utility::impl::xoshiro256pp& engine() {
+  static thread_local utility::impl::xoshiro256pp engine{};
+  return engine;
+}
+[[nodiscard]] inline bool coin_flip() {
+  return std::bernoulli_distribution{}(engine());
+}
+
+} //namespace Random
 
 #endif // UTILITY_H

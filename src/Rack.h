@@ -16,8 +16,6 @@ public:
 
   explicit Rack(SDL_Renderer* renderer);
 
-  [[nodiscard]] const Tile* tile_at_pos(SDL_Point point) noexcept;
-
   /**
    * @brief Take a tile from the rack at the given point. The tile is released from the rack.
    */
@@ -41,7 +39,7 @@ public:
 
   [[nodiscard]] std::vector<Tile> get_tiles() const { return {tiles_.begin(), tiles_.end()}; }
 
-  [[nodiscard]] std::span<const Tile> tile_view() const {return tiles_;}
+  [[nodiscard]] std::span<Tile> tile_view() {return tiles_;}
 
   /**
    * @brief Attempts to put a tile at a given point.
@@ -95,9 +93,9 @@ public:
 
     Tile* find_tile(SDL_Point point);
 
+    Texture missing_tile_texture_;
     std::array<Tile, constants::kRackTileAmount> tiles_;
     std::uint8_t taken_idx_{};
-    Texture missing_tile_texture_;
     Tile taken_;
   };
 
