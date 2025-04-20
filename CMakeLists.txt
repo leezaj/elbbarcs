@@ -23,10 +23,13 @@ FetchContent_MakeAvailable(glaze)
 include(FetchContent)
 FetchContent_Declare(
   battery_embed
-  GIT_REPOSITORY https://github.com/batterycenter/embed.git
+  GIT_REPOSITORY https://github.com/leezaj/embed.git
   GIT_TAG        main
 )
 FetchContent_MakeAvailable(battery_embed)
+
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23 CXX_EXTENSIONS False)
@@ -36,6 +39,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unknown-warning-option -Wall
 -Wunused -Wformat=2 -Woverloaded-virtual -Wmisleading-indentation -Wduplicated-cond -Wuseless-cast -Wduplicated-branches
 -Wlogical-op -Wnull-dereference -Wdouble-promotion -fno-rtti -fno-exceptions)
 target_compile_definitions(${PROJECT_NAME} PUBLIC B_PRODUCTION_MODE=ON)
+
+if(COMPILER_SUPPORTS_MARCH_NATIVE)
+  target_compile_options(${PROJECT_NAME} PRIVATE -march=native)
+endif()
 
 if(NOT DEFINED EMSCRIPTEN)
   #we need to do this, otherwise it complains about strings from our embedded binaries being too long
@@ -109,7 +116,7 @@ b_embed(${PROJECT_NAME} assets/templates/wood_button.webp)
 
 
 if(DEFINED EMSCRIPTEN)
-  target_compile_options(${PROJECT_NAME} PRIVATE  --use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx -s MALLOC=emmalloc -flto)
+  target_compile_options(${PROJECT_NAME} PRIVATE  --use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx -flto)
   set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s WASM=1  --use-preload-cache -s EVAL_CTORS=2 -flto")
   # debug linker flags
   set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_DEBUG "-g -sASSERTIONS=2 -sSTACK_OVERFLOW_CHECK=2 -fsanitize=undefined")

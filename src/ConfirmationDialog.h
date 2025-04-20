@@ -4,6 +4,7 @@
 #include "ButtonMaker.h"
 #include "Button.h"
 #include "Text.h"
+#include "types.h"
 #include <string_view>
 
 class Playing;
@@ -52,5 +53,7 @@ private:
   const Button *hovered_button_{};
   Playing* playing_state_;
 };
+
+static_assert(GameState<ConfirmationDialog>);
 
 #endif // CONFIRMATIONDIALOG_H

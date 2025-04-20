@@ -97,4 +97,7 @@ private:
   enum : std::uint8_t { RACK, BOARD } picked_up_from_{};
   bool players_turn_{Random::coin_flip()}, player_has_valid_placement_{}, player_used_hints_{};
 };
+
+static_assert(GameState<Playing>);
+
 #endif // PLAYING_H

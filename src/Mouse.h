@@ -8,20 +8,6 @@
 #include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_rect.h>
 
-template <typename T>
-concept Rectangle = std::same_as<std::remove_cvref_t<T>, SDL_Rect> || std::same_as<std::remove_cvref_t<T>, SDL_FRect>;
-
-template <typename T>
-concept Hoverable = requires(const T object) {
-  {object.hover()} -> std::same_as<void>;
-  {object.unhover()} -> std::same_as<void>;
-} && (requires(const T object) {
-    {object.rect} -> Rectangle;
-  } || requires(const T object) {
-    {object.rectangle()} -> Rectangle;
-  });
-
-
 struct Mouse final {
 public:
   static void set_default_cursor() {

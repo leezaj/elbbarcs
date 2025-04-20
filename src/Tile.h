@@ -1,6 +1,8 @@
 #ifndef TILE_H
 #define TILE_H
 
+#include "constants.h"
+#include "types.h"
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
 #include <cstdint>
@@ -30,10 +32,15 @@ struct Tile final {
     rect.x = point.x;
     rect.y = point.y;
   }
+  void hover() const {
+    SDL_SetTextureColorMod(texture, constants::kHoverMod.r, constants::kHoverMod.g, constants::kHoverMod.b);
+  }
 
-  void hover() const { SDL_SetTextureColorMod(texture, 240, 235, 225); }
-
-  void unhover() const { SDL_SetTextureColorMod(texture, 255, 255, 255); }
+  void unhover() const {
+    SDL_SetTextureColorMod(texture, constants::kUnhoverMod.r, constants::kUnhoverMod.g, constants::kUnhoverMod.b);
+  }
 };
+
+static_assert(Hoverable<Tile>);
 
 #endif // TILE_H

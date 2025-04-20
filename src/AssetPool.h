@@ -3,9 +3,9 @@
 
 #include "battery/embed.hpp"
 #include "types.h"
+#include "utility.h"
 #include <SDL2/SDL_image.h>
 #include <utility>
-#include "utility.h"
 
 enum class TextureType : uint8_t {
   BOARD,
@@ -23,7 +23,6 @@ enum class FontType : uint8_t {
   MOULDY_CHEESE,
   MAX
 };
-
 
 /**
  * @class AssetPool

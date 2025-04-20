@@ -19,6 +19,8 @@ constexpr SDL_Rect kRect{
     .h = ((kTileH + kHeightGap) * (kRows + 1)) - kHeightGap};
 
 
+
+// Requires that the tiles are sorted by their letters
 constexpr std::array<SDL_Texture*, constants::kNumOfTiles> unique_textures(std::span<const Tile> tiles) {
   std::array<SDL_Texture*, constants::kNumOfTiles> result;
   char previously_seen = std::numeric_limits<char>::max();
@@ -41,13 +43,13 @@ UnplayedTileCounter::UnplayedTileCounter(SDL_Renderer* renderer, TTF_Font* count
   all_tiles_{SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, kRect.w, kRect.h)},
   unavailable_shadows_{SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, kRect.w, kRect.h)},
   texts_{
-    utility::generate_array<unique_textures.size()>( [renderer, counter_font, i = 0] mutable -> Text {
-        const int x = (kTileW + kWidthGap) * (i % kTilesPerRow);
-        const int y = (kTileH + kHeightGap) * (i / kTilesPerRow);
+    utility::generate_array<unique_textures.size()>( [renderer, counter_font, index = 0] mutable -> Text {
+        const int tile_x = (kTileW + kWidthGap) * (index % kTilesPerRow);
+        const int tile_y = (kTileH + kHeightGap) * (index / kTilesPerRow);
         return Text{
           renderer, counter_font, kCounterFontSize, SDL_Color{.r = 0, .g = 0, .b = 0, .a = 0}, 
-          std::to_string(constants::tile_info[static_cast<size_t>(i++)].frequency),
-          SDL_Point{.x = x + kRect.x + 2, .y = y + kRect.y}
+          std::to_string(constants::tile_info[static_cast<size_t>(index++)].frequency),
+          SDL_Point{.x = tile_x + kRect.x + 2, .y = tile_y + kRect.y}
         };
       })
   }

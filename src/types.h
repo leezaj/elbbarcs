@@ -1,25 +1,13 @@
-/**
- * @file types.h
- * @brief Definitions for various types used in the program.
- */
-
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <SDL2/SDL_events.h>
 #include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_ttf.h>
 #include <memory>
+#include <utility>
 
-/**
- * @brief A struct that is templated with the non-type template
- * paramater Function. The struct's operator() takes a pointer argument and
- * calls Function on that argument. This is useful because SDL uses custom
- * deleters for various things and we want std::unique_ptr to use them (and
- * std::unique_ptr<T,D> requires the deleter D to be a type.)
- *
- * @param obj A pointer that should be freed.
- */
 template <auto Function> struct Wrapper final {
   static void operator()(auto* obj) { Function(obj); }
 };
@@ -31,5 +19,24 @@ using Surface = std::unique_ptr<SDL_Surface, Wrapper<SDL_FreeSurface>>;
 using Texture = std::unique_ptr<SDL_Texture, Wrapper<SDL_DestroyTexture>>;
 using Window = std::unique_ptr<SDL_Window, Wrapper<SDL_DestroyWindow>>;
 using RWops = std::unique_ptr<SDL_RWops, Wrapper<SDL_RWclose>>;
+
+template <typename T>
+concept Rectangle = std::same_as<std::remove_cvref_t<T>, SDL_Rect> || std::same_as<std::remove_cvref_t<T>, SDL_FRect>;
+
+template <typename T>
+concept Hoverable = requires(const T object) {
+  {object.hover()} -> std::same_as<void>;
+  {object.unhover()} -> std::same_as<void>;
+} && (requires(const T object) {
+    {object.rect} -> Rectangle;
+  } || requires(const T object) {
+    {object.rectangle()} -> Rectangle;
+  });
+
+template <typename T>
+concept GameState  = requires(T state, SDL_Event event) {
+  {std::as_const(state).render_objects()} -> std::same_as<void>;
+  {state.handle_event(event)} -> std::same_as<void>;
+};
 
 #endif // TYPES_H

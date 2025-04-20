@@ -10,7 +10,7 @@
 class BoardModel final {
 
 public:
-  static constexpr std::array<Row_Col, constants::kTotalSquares> all_positions = std::invoke([]static{
+  static constexpr std::array<Row_Col, constants::kTotalSquares> all_positions = std::invoke([]static{ // IIFE
     std::array<Row_Col, constants::kTotalSquares> temp;
     // TODO: Replace with std::views::enumerate when clang supports it
     for(size_t index = 0; index < constants::kTotalSquares; ++index) {

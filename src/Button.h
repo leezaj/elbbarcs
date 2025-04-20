@@ -1,6 +1,8 @@
 #ifndef BUTTON_H
 #define BUTTON_H
 
+#include "constants.h"
+#include "types.h"
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
 #include <cstdint>
@@ -39,9 +41,13 @@ public:
     }
   }
 
-  void hover() const { SDL_SetTextureColorMod(texture_, 240, 235, 225); }
+  void hover() const {
+    SDL_SetTextureColorMod(texture_, constants::kHoverMod.r, constants::kHoverMod.g, constants::kHoverMod.b);
+  }
 
-  void unhover() const { SDL_SetTextureColorMod(texture_, 255, 255, 255); }
+  void unhover() const {
+    SDL_SetTextureColorMod(texture_, constants::kUnhoverMod.r, constants::kUnhoverMod.g, constants::kUnhoverMod.b);
+  }
 
   void render(SDL_Renderer* renderer) const {
     SDL_RenderCopy(renderer, texture_, nullptr, &rect_);
@@ -57,5 +63,7 @@ private:
   std::function<void()> callback_;
   bool enabled_{true};
 };
+
+static_assert(Hoverable<Button>);
 
 #endif // BUTTON_H

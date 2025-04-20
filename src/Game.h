@@ -1,9 +1,9 @@
 #ifndef GAME_H
 #define GAME_H
-#include "ButtonMaker.h"
 #include "AssetPool.h"
-#include "MainMenu.h"
+#include "ButtonMaker.h"
 #include "GameStateManager.h"
+#include "MainMenu.h"
 #include "Mouse.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>

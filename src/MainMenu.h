@@ -3,6 +3,7 @@
 
 #include "ButtonMaker.h"
 #include "Playing.h"
+#include "types.h"
 #include <optional>
 class MainMenu final {
 public:
@@ -24,5 +25,7 @@ private:
   const Button* hovered_button_{};
   std::optional<Playing> playing_state_;
 };
+
+static_assert(GameState<MainMenu>);
 
 #endif // MAINMENU_H

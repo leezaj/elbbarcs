@@ -6,11 +6,10 @@
 #include <SDL_image.h>
 #include <algorithm>
 #include <cassert>
-#include <print>
 #include <ranges>
 
 namespace {
-constexpr std::array files{
+constexpr std::array tile_files{
     b::embed<"assets/tiles/a.webp">(),
     b::embed<"assets/tiles/b.webp">(),
     b::embed<"assets/tiles/c.webp">(),
@@ -44,6 +43,7 @@ constexpr std::array files{
 namespace {
   template <std::ranges::contiguous_range R>
   constexpr auto iterator_at(R& range, size_t index) {
+    assert(index < std::ranges::size(range));
     return std::next(range.begin(), static_cast<typename R::difference_type>(index));
   }
 } // namespace
@@ -51,7 +51,7 @@ namespace {
 TileBag::TileBag(SDL_Renderer* renderer)
 {
   size_t current_idx = 0;
-  for(const auto& [asset, tile]: std::views::zip(files, constants::tile_info)) {
+  for(const auto& [asset, tile]: std::views::zip(tile_files, constants::tile_info)) {
     RWops buffer {SDL_RWFromConstMem(asset.data(), static_cast<int>(asset.size()))};
     Surface temp{IMG_LoadWEBP_RW(buffer.get())};
     for (auto i = 0; i < tile.frequency; ++i) {
@@ -65,10 +65,12 @@ TileBag::TileBag(SDL_Renderer* renderer)
 }
 
 [[nodiscard]] Tile TileBag::take_from() {
+  assert(tiles_left() > 0);
   return tile_bag_[take_from_index_++];
 }
 
 [[nodiscard]] size_t TileBag::tiles_left() const {
+  assert(take_from_index_ < tile_bag_.size());
   return tile_bag_.size() - take_from_index_;
 }
 
@@ -80,17 +82,17 @@ TileBag::TileBag(SDL_Renderer* renderer)
   assert(tiles_left() >= with.size());
   std::vector<Tile> result;
   result.reserve(with.size());
-  auto current = iterator_at(tile_bag_, take_from_index_);
-  auto lookahead = current;
+  auto current_take_from = iterator_at(tile_bag_, take_from_index_);
+  auto lookahead = current_take_from;
   for(const Tile& existing: with) {
-    auto it = std::ranges::find(tile_bag_.begin(), current, existing.letter, &Tile::letter);
+    auto it = std::ranges::find(tile_bag_.begin(), current_take_from, existing.letter, &Tile::letter);
     assert(it != tile_bag_.end());
     result.push_back(*lookahead);
     std::iter_swap(it, lookahead);
     std::advance(lookahead, 1);
     assert(lookahead != tile_bag_.end());
   }
-  std::ranges::shuffle(current, tile_bag_.end(), Random::engine());
+  std::ranges::shuffle(current_take_from, tile_bag_.end(), Random::engine());
   return result;
 }
 
@@ -104,6 +106,5 @@ void TileBag::reset() {
 }
 
 void TileBag::shuffle() {
-  const auto current = iterator_at(tile_bag_, take_from_index_);
-  std::ranges::shuffle(current, tile_bag_.end(), Random::engine());
+  std::ranges::shuffle(iterator_at(tile_bag_, take_from_index_), tile_bag_.end(), Random::engine());
 }

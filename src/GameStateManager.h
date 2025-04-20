@@ -1,13 +1,7 @@
+#include "types.h"
 #include <SDL2/SDL_events.h>
-#include <utility>
 #include <variant>
 #include <vector>
-
-template <typename T>
-concept GameState  = requires(T state, SDL_Event event) {
-  {std::as_const(state).render_objects()} -> std::same_as<void>;
-  {state.handle_event(event)} -> std::same_as<void>;
-};
 
 template <GameState ... States>
 class GameStateManager {

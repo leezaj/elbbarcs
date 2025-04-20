@@ -47,4 +47,6 @@ private:
   Playing* playing_state_{};
 };
 
+static_assert(GameState<BlankTileReplacer>);
+
 #endif // BlankTileReplacer_H

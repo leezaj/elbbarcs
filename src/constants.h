@@ -96,10 +96,12 @@ inline constexpr std::uint32_t kAlphaMask = (std::endian::native == std::endian:
 
 inline constexpr auto kDimRGB{100};
 
-inline constexpr uint8_t kRackButtonGap = (kBoardDims - kRackTilePositions.back().x) / 2;
+inline constexpr auto kRackButtonGap = static_cast<std::uint8_t>((kBoardDims - kRackTilePositions.back().x)/2);
 
 inline constexpr SDL_Color kFontColorBrown{.r=54,.g=23,.b=5,.a=0};
 inline constexpr SDL_Color kFontColorBeige{.r=242, .g=219, .b=145, .a=0};
+static constexpr auto kHoverMod = SDL_Color{240, 235, 225, 0};
+static constexpr auto kUnhoverMod = SDL_Color{255, 255, 255, 0};
 
 } // namespace constants
 #endif // CONSTANTS_H

@@ -5,6 +5,7 @@
 #include "Button.h"
 #include "ButtonMaker.h"
 #include "Text.h"
+#include "types.h"
 #include <array>
 
 class Playing;
@@ -43,5 +44,7 @@ private:
   const Button* hovered_button_{};
   Playing* playing_state_;
 };
+
+static_assert(GameState<GameOver>);
 
 #endif //GAMEOVER_H

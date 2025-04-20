@@ -50,18 +50,12 @@ public:
     ValidPlacement info{};
   };
 
-  /**
-   * @brief If the placed tiles constitute a legal Scrabble placement, then
-   * returns information about the move. Otherwise, returns nothing.
-   */
   [[nodiscard]] Evaluation get_board_evaluation(std::span<const Tile> placed_tiles) const;
 
-  /**
-   * @brief Get the highest scoring move given a board state.
-   */
   [[nodiscard]] Solution get_best_move(std::span<const Tile> rack);
 
 private:
+
   static constexpr Row_Col kMiddleSquare = {.row = constants::kSquareNum / 2, .col = constants::kSquareNum / 2};
 
   enum Direction : std::uint8_t { ACROSS, DOWN };
@@ -126,7 +120,5 @@ private:
   std::unordered_map<Row_Col, CrossData> cross_checks_;
   const BoardModel *board_;
   const Dawg *dict_;
-
-
 };
 #endif // SOLVER_H

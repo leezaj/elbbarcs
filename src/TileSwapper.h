@@ -7,6 +7,7 @@
 #include "Tile.h"
 #include "TileBag.h"
 #include "constants.h"
+#include "types.h"
 #include <bitset>
 #include <vector>
 
@@ -41,5 +42,7 @@ private:
   Text remaining_text_, selected_text_;
   int tiles_left_{};
 };
+
+static_assert(GameState<TileSwapper>);
 
 #endif // TILESWAPPER_H

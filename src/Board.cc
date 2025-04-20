@@ -6,7 +6,6 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_surface.h>
 #include <cassert>
-#include <utility>
 #include <vector>
 
 constexpr SDL_Rect kTrimmedTile{0, 0, constants::kTileWidth, constants::kTileHeight - 3};
