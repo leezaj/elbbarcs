@@ -18,14 +18,6 @@
 class Solver final {
 public:
 
-  enum class InvalidPlacementError : std::uint8_t {
-    NO_TILES_PROVIDED,
-    MIDDLE_SQUARE_NOT_FILLED,
-    NO_ADJACENT_TILE,
-    NOT_STRAIGHT_LINE,
-    NOT_CONTIGUOUS,
-  };
-
   Solver(const BoardModel &board, const Dawg &dictionary);
 
   struct ValidPlacement {
@@ -36,6 +28,14 @@ public:
   struct ValidPlacementInvalidWords {
     ValidPlacement placement{};
     std::vector<std::string> invalid_words;
+  };
+
+  enum class InvalidPlacementError : std::uint8_t {
+    NO_TILES_PROVIDED,
+    MIDDLE_SQUARE_NOT_FILLED,
+    NO_ADJACENT_TILE,
+    NOT_STRAIGHT_LINE,
+    NOT_CONTIGUOUS,
   };
 
   using Evaluation = std::expected<ValidPlacement, std::variant<InvalidPlacementError, ValidPlacementInvalidWords>>;

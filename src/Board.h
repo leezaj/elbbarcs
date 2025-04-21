@@ -51,7 +51,7 @@ private:
   Texture board_texture_;
   std::vector<Tile> recently_placed_, already_played_, blanks_;
   std::vector<Tile> computer_highlighted_tiles_;
-  Tile taken_;
+  std::optional<Tile> taken_;
   SDL_Point last_taken_point_{};
   std::optional<SDL_Rect> shadow_;
   BoardModel model_;

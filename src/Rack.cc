@@ -73,14 +73,16 @@ Tile* Rack::take_from(SDL_Point point) {
   if(Tile* it = find_tile(point); it!=nullptr){
     taken_ = std::exchange(*it, create_gap_at(it->point()));
     taken_idx_ = static_cast<std::uint8_t>(std::distance(tiles_.data(), it));
-    return &taken_;
+    return &(*taken_);
   }
   return nullptr;
 }
 
 void Rack::return_tile() {
-  tiles_[taken_idx_] = taken_;
-  tiles_[taken_idx_].move(constants::kRackTilePositions[taken_idx_]);
+  if(taken_) {
+    tiles_[taken_idx_] = *taken_;
+    tiles_[taken_idx_].move(constants::kRackTilePositions[taken_idx_]);
+  }
 }
 
 void Rack::shuffle() {

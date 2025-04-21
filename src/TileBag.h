@@ -26,6 +26,7 @@ void shuffle();
 void reset();
 
 private:
+  TileBag(SDL_Renderer *renderer, Surface current_surface);
   void load_tiles(SDL_Renderer* renderer);
   std::array<Texture, constants::kBagTileAmount> tile_textures_;
   std::array<Tile, constants::kBagTileAmount> tile_bag_;

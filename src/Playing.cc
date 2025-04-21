@@ -352,7 +352,7 @@ void Playing::evaluate_board() {
       buttons_[ENTER].enable();
     }
   } else {
-    std::visit([this](auto&& error){
+    std::visit([this](const auto& error){
       using T = std::remove_cvref_t<decltype(error)>;
       if constexpr(std::same_as<T, Solver::InvalidPlacementError>) {
         player_has_valid_placement_ = false;

@@ -133,14 +133,15 @@ template<typename ... Ts>
 concept all_same = (std::same_as<first_t<Ts...>, Ts> && ...);
 
 template <typename... Args>
-constexpr void log(impl::format_string fmt, Args&&... args) noexcept {
+constexpr void log(impl::format_string fmt, const Args&... args) noexcept {
   if constexpr(constants::debug) {
     std::chrono::zoned_time current_time{std::chrono::current_zone(), std::chrono::system_clock::now()};
     std::println("[DEBUG] [{:%T}] {}:{} {}", 
       current_time,
       impl::get_filename(fmt.sloc_.file_name()),
       fmt.sloc_.line(),
-      std::vformat(fmt.str_, std::make_format_args(args...)));
+      std::vformat(fmt.str_, std::make_format_args(args...))
+    );
   }
 }
 

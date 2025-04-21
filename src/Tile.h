@@ -20,8 +20,6 @@ struct Tile final {
     value{tile_value} 
   {}
 
-  Tile() : Tile({}, {}, {}, {}) {}
-
   [[nodiscard]] SDL_Point point() const { return {.x = rect.x, .y = rect.y}; }
 
   void render(SDL_Renderer* renderer) const {

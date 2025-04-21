@@ -96,7 +96,7 @@ public:
     Texture missing_tile_texture_;
     std::array<Tile, constants::kRackTileAmount> tiles_;
     std::uint8_t taken_idx_{};
-    Tile taken_;
+    std::optional<Tile> taken_;
   };
 
 #endif // RACK_H

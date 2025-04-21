@@ -89,9 +89,8 @@ bool Board::put_on_board(Row_Col pos, Tile tile, bool is_player) {
   return true;
 }
 
-Tile *Board::take_from_board(SDL_Point point) {
-  if(auto it = std::ranges::find_if(recently_placed_, [=](const Tile &tile) {return contains(tile.rect, point);}); 
-      it!=recently_placed_.end()){
+Tile* Board::take_from_board(SDL_Point point) {
+  if(auto it = std::ranges::find_if(recently_placed_, [=](const Tile &tile) {return contains(tile.rect, point);}); it!=recently_placed_.end()){
     if(it->value == 0){
       const auto blank = std::ranges::find(blanks_, it->point(), &Tile::point);
       assert(blank!=blanks_.end());
@@ -100,20 +99,22 @@ Tile *Board::take_from_board(SDL_Point point) {
     } else {
       taken_ = *it;
     }
-    clear_rect(taken_.rect);
-    taken_.rect.w = constants::kTileWidth;
-    taken_.rect.h = constants::kTileHeight;
-    model_.clear_square(to_row_col(taken_.point()));
+    clear_rect(taken_->rect);
+    taken_->rect.w = constants::kTileWidth;
+    taken_->rect.h = constants::kTileHeight;
+    model_.clear_square(to_row_col(taken_->point()));
     recently_placed_.erase(it);
-    last_taken_point_ = taken_.point();
-    return &(taken_);
+    last_taken_point_ = taken_->point();
+    return &(*taken_);
   }
   return nullptr;
 }
 
 void Board::return_tile() {
-  put_shadow(last_taken_point_);
-  put_on_board(taken_);
+  if(taken_) {
+    put_shadow(last_taken_point_);
+    put_on_board(*taken_);
+  }
 }
 
 Tile Board::take_oldest_placed() {

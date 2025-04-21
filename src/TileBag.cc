@@ -9,6 +9,7 @@
 #include <ranges>
 
 namespace {
+
 constexpr std::array tile_files{
     b::embed<"assets/tiles/a.webp">(),
     b::embed<"assets/tiles/b.webp">(),
@@ -38,31 +39,80 @@ constexpr std::array tile_files{
     b::embed<"assets/tiles/z.webp">(),
     b::embed<"assets/tiles/blank_tile.webp">()
 };
+
+template <std::ranges::contiguous_range R>
+constexpr auto iterator_at(R& range, size_t index) {
+  assert(index < std::ranges::size(range));
+  return std::next(range.begin(), static_cast<typename R::difference_type>(index));
+}
+
+consteval size_t total_num_of_tiles(){
+  return std::ranges::fold_left(std::views::transform(constants::tile_info, [](constants::TileInfo info){
+        return info.frequency; }), 0, std::plus{});
+}
+
+inline Surface surface_from_idx(size_t idx) {
+  return Surface{
+    IMG_LoadWEBP_RW(RWops{SDL_RWFromConstMem(tile_files[idx].data(), static_cast<int>(tile_files[idx].size()))}.get())
+  };
+}
+
 } // namespace
 
-namespace {
-  template <std::ranges::contiguous_range R>
-  constexpr auto iterator_at(R& range, size_t index) {
-    assert(index < std::ranges::size(range));
-    return std::next(range.begin(), static_cast<typename R::difference_type>(index));
-  }
-} // namespace
-
-TileBag::TileBag(SDL_Renderer* renderer)
+TileBag::TileBag(SDL_Renderer* renderer) :
+  TileBag(renderer, surface_from_idx(0))
 {
-  size_t current_idx = 0;
-  for(const auto& [asset, tile]: std::views::zip(tile_files, constants::tile_info)) {
-    RWops buffer {SDL_RWFromConstMem(asset.data(), static_cast<int>(asset.size()))};
-    Surface temp{IMG_LoadWEBP_RW(buffer.get())};
-    for (auto i = 0; i < tile.frequency; ++i) {
-      tile_textures_[current_idx] = Texture(SDL_CreateTextureFromSurface(renderer, temp.get()));
-      tile_bag_[current_idx] = Tile(tile_textures_[current_idx].get(), 
-          SDL_Rect{ .x = 0, .y = 0, .w = constants::kTileWidth, .h = constants::kTileHeight}, tile.letter, tile.value);
-      ++current_idx;
-    }
-  }
   utility::log("Tile bag initialized");
 }
+
+/*
+ * The reason for this complicated initialization is that Tile does not have a
+ * default constructor, as well as tiles each having a different frequency. We
+ * thus need to generate textures and tiles using special generating functions
+ * that will eventually populate std::arrays (keeping in mind that we cannot
+ * make make a std::array with non-default constructible elements without
+ * aggregate initialization)
+ */
+TileBag::TileBag(SDL_Renderer* renderer, Surface current_surface) :
+  tile_textures_{
+    utility::generate_array<total_num_of_tiles()>(
+      [
+        renderer,
+        &current_surface,
+        curr_idx = 0UZ,
+        curr_freq = 0
+      ] mutable {
+        if(curr_freq == constants::tile_info[curr_idx].frequency) {
+          ++curr_idx;
+          curr_freq = 0;
+          current_surface = surface_from_idx(curr_idx);
+        }
+        ++curr_freq;
+        return Texture{SDL_CreateTextureFromSurface(renderer, current_surface.get())};
+      }
+    )
+  },
+  tile_bag_{
+    utility::generate_array<total_num_of_tiles()>(
+      [
+        this,
+        curr_idx = 0UZ,
+        curr_freq = 0,
+        curr_texture_idx = 0UZ
+      ] mutable {
+        if(curr_freq == constants::tile_info[curr_idx].frequency) {
+          ++curr_idx;
+          curr_freq = 0;
+        }
+        ++curr_freq;
+        return Tile(tile_textures_[curr_texture_idx++].get(),
+                    SDL_Rect{.x=0, .y=0, .w=constants::kTileWidth, .h=constants::kTileHeight},
+                    constants::tile_info[curr_idx].letter,
+                    constants::tile_info[curr_idx].value);
+      }
+    )
+  }
+{}
 
 [[nodiscard]] Tile TileBag::take_from() {
   assert(tiles_left() > 0);
