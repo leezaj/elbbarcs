@@ -117,18 +117,16 @@ Tile *Playing::take_tile()  {
   return tile;
 }
 
-const Button* Playing::button_at_pos() const  {
-  if(const auto button = std::ranges::find_if(buttons_, [](const auto& btn) static { 
-      return contains(btn.rectangle(), Mouse::pos()) and btn.is_enabled(); }); button!=buttons_.end()) {
-    return &*button;
-  }
-  return nullptr;
-}
-
 void Playing::click_button() const  {
-  if(const Button *button = button_at_pos(); button != nullptr) {
-    button->click();
-  }
+  std::visit([this](auto&& hovered) {
+    if constexpr(std::same_as<std::remove_cvref_t<decltype(hovered)>, Button*>) {
+      if(hovered != &buttons_[SHUFFLE_OR_RECALL]) {
+        Mouse::click_hovered(hovered);
+      } else {
+        hovered->click();
+      }
+    }
+  }, hovered_);
 }
 
 void Playing::render_objects() const {
@@ -357,6 +355,7 @@ void Playing::evaluate_board() {
       if constexpr(std::same_as<T, Solver::InvalidPlacementError>) {
         player_has_valid_placement_ = false;
         player_word_outliner_.set_hidden(true);
+        computer_word_outliner_.set_hidden(scoreboard_.get_score(Scoreboard::Player::COMPUTER) == 0);
         utility::log("{}", invalid_placement_error_to_string(error));
       }
       else if constexpr(std::same_as<T, Solver::ValidPlacementInvalidWords>) {
@@ -425,6 +424,7 @@ void Playing::handle_event(const SDL_Event& event) {
         return;
       }
       if (selected_tile_ = take_tile(); selected_tile_ != nullptr) {
+        Mouse::set_hand_cursor();
         player_word_outliner_.set_hidden(true);
         tile_offset_ = Mouse::pos() - selected_tile_->point();
         selected_tile_->unhover();

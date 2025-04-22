@@ -15,15 +15,15 @@ Game::Game() :
 }
 
 void Game::run() noexcept {
-  #ifndef __EMSCRIPTEN__
+#ifndef __EMSCRIPTEN__
   while(is_running_){
     process_events();
     render();
   }
-  #else
+#else
     process_events();
     render();
-  #endif
+#endif
 }
 
 void Game::render() {
@@ -45,9 +45,9 @@ void Game::render() {
 void Game::process_events() {
 #ifndef __EMSCRIPTEN__
   if (SDL_WaitEvent(&event_) != 0) {
-  #else
+#else
   while(SDL_PollEvent(&event_) != 0) {
-  #endif
+#endif
     switch(event_.type) {
       [[unlikely]] case SDL_QUIT:
         is_running_ = false;

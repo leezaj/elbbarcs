@@ -13,11 +13,13 @@ public:
   static void set_default_cursor() {
     static Cursor default_cursor{SDL_CreateSystemCursor(SDL_SystemCursor::SDL_SYSTEM_CURSOR_ARROW)};
     SDL_SetCursor(default_cursor.get());
+    hovering_status_ = false;
   }
 
   static void set_hand_cursor() {
     static Cursor hand_cursor{SDL_CreateSystemCursor(SDL_SystemCursor::SDL_SYSTEM_CURSOR_HAND)};
     SDL_SetCursor(hand_cursor.get());
+    hovering_status_ = true;
   }
 
   static SDL_Point pos() {return pos_;}
@@ -27,6 +29,8 @@ public:
       button->click();
       button->unhover();
       set_default_cursor();
+      hovering_status_ = false;
+      utility::log("Button clicked at x: {}, y: {}", pos_.x, pos_.y);
     }
   }
 
@@ -52,6 +56,7 @@ public:
       }
       return false;
     }() || ...); current_hover != hovering_status_) {
+      utility::log("Hovered status changed from {} to {}", hovering_status_, current_hover);
       hovering_status_ = current_hover;
       std::invoke(cursor_funcs[hovering_status_]);
     }

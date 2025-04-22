@@ -1,7 +1,7 @@
 #include "types.h"
-#include "Mouse.h"
 #include "Game.h"
 #include "MainMenu.h"
+#include "Mouse.h"
 
 namespace {
 
@@ -66,7 +66,6 @@ constexpr SDL_Rect kLogoRect {
 
 constexpr int kFontSize = 50, kOptionBegin = 425, kOptionGap = 110, kAngleRotate = 180;
 
-
 } // namespace
 
 MainMenu::MainMenu(const AssetPool &assets, ButtonMaker& button_maker):
@@ -126,6 +125,7 @@ void MainMenu::handle_event(const SDL_Event& event) {
       return;
     case SDL_MOUSEBUTTONUP:
       Mouse::click_hovered(hovered_button_);
+      hovered_button_ = nullptr;
       return;
     default:
       return;

@@ -58,8 +58,6 @@ private:
 
   [[nodiscard]] Tile *take_tile();
 
-  [[nodiscard]] const Button *button_at_pos() const;
-
   void show_shuffle_button();
 
   void show_recall_button();
