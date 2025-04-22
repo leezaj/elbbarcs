@@ -86,7 +86,7 @@ void Rack::return_tile() {
 }
 
 void Rack::shuffle() {
-  std::ranges::shuffle(tiles_, Random::engine());
+  std::ranges::shuffle(tiles_, utility::random::engine());
   for(auto [tile, position] : std::views::zip(tiles_, constants::kRackTilePositions)) {
     tile.move(position);
   }

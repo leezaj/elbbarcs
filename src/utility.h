@@ -1,6 +1,7 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
+#include "constants.h"
 #include <SDL2/SDL_rect.h>
 #include <array>
 #include <bit>
@@ -11,8 +12,6 @@
 #include <random>
 #include <ranges>
 #include <source_location>
-
-#include "constants.h"
 
 [[nodiscard]] constexpr SDL_Point operator-(SDL_Point p1, SDL_Point p2) {
   return SDL_Point{.x = p1.x - p2.x, .y = p1.y - p2.y};
@@ -64,8 +63,9 @@ private:
 public:
   using result_type = std::uint64_t;
 
-  constexpr explicit xoshiro256pp(std::uint64_t seed = std::random_device{}()) {
-    std::seed_seq seq{seed, seed+1, seed+2, seed+3};
+  constexpr xoshiro256pp() {
+    std::random_device rd{};
+    std::seed_seq seq{rd(), rd(), rd(), rd()};
     seq.generate(state_.begin(), state_.end());
   }
 
@@ -178,23 +178,18 @@ template<size_t N, typename F> requires std::regular_invocable<F>
     } (std::make_index_sequence<N>{});
 }
 
-template<typename ... Ts>
-struct Overload : Ts ... {
-    using Ts::operator() ...;
-};
-
-} // namespace utility
-
-namespace Random {
+namespace random {
 
 inline utility::impl::xoshiro256pp& engine() {
   static thread_local utility::impl::xoshiro256pp engine{};
   return engine;
 }
-[[nodiscard]] inline bool coin_flip() {
-  return std::bernoulli_distribution{}(engine());
+[[nodiscard]] inline constexpr bool coin_flip() {
+  return static_cast<bool>(engine()() & 1);
 }
 
-} //namespace Random
+} //namespace random
+
+} // namespace utility
 
 #endif // UTILITY_H

@@ -120,7 +120,7 @@ TileBag::TileBag(SDL_Renderer* renderer, Surface current_surface) :
 }
 
 [[nodiscard]] size_t TileBag::tiles_left() const {
-  assert(take_from_index_ < tile_bag_.size());
+  assert(take_from_index_ <= tile_bag_.size());
   return tile_bag_.size() - take_from_index_;
 }
 
@@ -142,7 +142,7 @@ TileBag::TileBag(SDL_Renderer* renderer, Surface current_surface) :
     std::advance(lookahead, 1);
     assert(lookahead != tile_bag_.end());
   }
-  std::ranges::shuffle(current_take_from, tile_bag_.end(), Random::engine());
+  std::ranges::shuffle(current_take_from, tile_bag_.end(), utility::random::engine());
   return result;
 }
 
@@ -156,5 +156,5 @@ void TileBag::reset() {
 }
 
 void TileBag::shuffle() {
-  std::ranges::shuffle(iterator_at(tile_bag_, take_from_index_), tile_bag_.end(), Random::engine());
+  std::ranges::shuffle(iterator_at(tile_bag_, take_from_index_), tile_bag_.end(), utility::random::engine());
 }

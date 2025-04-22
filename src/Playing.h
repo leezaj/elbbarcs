@@ -81,7 +81,7 @@ private:
   ConfirmationDialog confirm_dialog_;
   TileSwapper tile_swapper_;
   Button shuffle_, recall_;
-  std::array<Button, NUM_OF_BUTTONS> buttons_; // -1 because shuffle or recall cannot appear at the same time
+  std::array<Button, NUM_OF_BUTTONS> buttons_;
   Scoreboard scoreboard_;
   WordOutliner player_word_outliner_, computer_word_outliner_;
   Tile *selected_tile_{};
@@ -93,7 +93,7 @@ private:
   UnplayedTileCounter counter_;
   std::uint8_t skipped_turns_in_a_row_{};
   enum : std::uint8_t { RACK, BOARD } picked_up_from_{};
-  bool players_turn_{Random::coin_flip()}, player_has_valid_placement_{}, player_used_hints_{};
+  bool players_turn_{utility::random::coin_flip()}, player_has_valid_placement_{}, player_used_hints_{};
 };
 
 static_assert(GameState<Playing>);

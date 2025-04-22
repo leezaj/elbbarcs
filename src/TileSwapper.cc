@@ -92,21 +92,21 @@ void TileSwapper::handle_event(const SDL_Event& event) {
       }
       return;
     case SDL_MOUSEBUTTONUP:
-      std::visit(utility::Overload {
-        [this](Tile* hovered_tile) { // tile case
-          if(hovered_tile == nullptr) {
+      std::visit([this](auto&& hovered){
+        using T = std::remove_cvref_t<decltype(hovered)>;
+        if constexpr(std::same_as<T, Tile*>) {
+          if(hovered == nullptr) {
             return;
           }
-          const auto idx = static_cast<size_t>(std::distance(tiles_.data(), hovered_tile));
-          hovered_tile->rect.y += kToggleHeight * (1 - 2 * static_cast<int>(selected_tiles_.flip(idx).test(idx)));
+          const auto idx = static_cast<size_t>(std::distance(tiles_.data(), hovered));
+          hovered->rect.y += kToggleHeight * (1 - 2 * static_cast<int>(selected_tiles_.flip(idx).test(idx)));
           const int selected = static_cast<int>(selected_tiles_.count());
           update_selected_tiles_text(selected);
           selected > 0 and tiles_left_ >= selected ? buttons_[CONFIRM].enable() : buttons_[CONFIRM].disable();
-        },
-        [](Button* hovered_button) static { // button case
-          if(hovered_button != nullptr) {
-          Mouse::click_hovered(hovered_button);
-          }
+        } else if constexpr(std::same_as<T, Button*>) {
+          Mouse::click_hovered(hovered);
+        } else {
+          static_assert(false, "Variant case not handled!");
         }
       }, hovered_object_);
       [[fallthrough]];

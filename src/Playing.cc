@@ -173,7 +173,7 @@ void Playing::restart_game() {
   player_word_outliner_.set_hidden(true);
   computer_word_outliner_.set_hidden(true);
   skipped_turns_in_a_row_ = 0;
-  players_turn_ = Random::coin_flip();
+  players_turn_ = utility::random::coin_flip();
   players_turn_ ? start_player_turn() : play_opponent_turn();
 }
 
