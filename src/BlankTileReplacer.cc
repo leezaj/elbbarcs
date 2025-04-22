@@ -1,9 +1,9 @@
 #include "battery/embed.hpp"
 #include "BlankTileReplacer.h"
 #include "Board.h"
-#include "Playing.h"
 #include "Game.h"
 #include "Mouse.h"
+#include "Playing.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_render.h>
 #include <cassert>

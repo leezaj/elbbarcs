@@ -95,7 +95,7 @@ MainMenu::MainMenu(const AssetPool &assets,
   logo_{assets.get(TextureType::LOGO)},
   buttons_{
     utility::map<utility::to_array>(texts, [&assets, &callbacks, idx = 0](std::string_view text) mutable {
-      Text temp{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSize, constants::kFontColorBrown, text, {}};
+      Text temp{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSize, constants::kColorBrown, text, {}};
       temp.center_text(kBoardBgDest.x, kBoardBgDest.w, kOptionBegin + (kOptionGap * idx));
       Texture texture = temp.take_texture();
       return std::pair<Button, Texture>(std::piecewise_construct,

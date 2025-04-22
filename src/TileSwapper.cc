@@ -40,8 +40,8 @@ TileSwapper::TileSwapper(Playing &playing_state, const AssetPool &assets, const 
      }}
   },
   bag_{&bag},
-  remaining_text_{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSize, constants::kFontColorBeige},
-  selected_text_{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSize, constants::kFontColorBeige}
+  remaining_text_{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSize, constants::kColorBeige},
+  selected_text_{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSize, constants::kColorBeige}
 {
   update_tiles_left_text();
   utility::log("Tile swapper initialized");
@@ -61,13 +61,13 @@ void TileSwapper::ask(Texture background, std::vector<Tile> tiles) {
 void TileSwapper::update_tiles_left_text() {
   if (auto bag_count = static_cast<int>(bag_->tiles_left()); bag_count != tiles_left_) {
     tiles_left_ = bag_count;
-    remaining_text_.update(Game::renderer(), constants::kFontColorBeige, std::to_string(bag_count) + " tiles left", kTilesLeftPos);
+    remaining_text_.update(Game::renderer(), constants::kColorBeige, std::to_string(bag_count) + " tiles left", kTilesLeftPos);
   }
 }
 
 void TileSwapper::update_selected_tiles_text(int count) {
   selected_str_[0] = static_cast<char>(count + '0');
-  selected_text_.update(Game::renderer(), constants::kFontColorBeige, selected_str_, kSelectedTilesPos);
+  selected_text_.update(Game::renderer(), constants::kColorBeige, selected_str_, kSelectedTilesPos);
 }
 
 void TileSwapper::render_objects() const {

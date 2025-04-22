@@ -16,7 +16,7 @@ Button ButtonMaker::make_text_button(SDL_Renderer *rend, std::string_view text, 
       constants::kRedMask, constants::kGreenMask, constants::kBlueMask, constants::kAlphaMask)};
   SDL_BlitSurface(wood_button_.get(), nullptr, copy.get(), nullptr);
   TTF_SetFontSize(font_, kBtnH/2);
-  const Surface text_surface{TTF_RenderUTF8_Blended(font_, text.data(), constants::kFontColorBrown)};
+  const Surface text_surface{TTF_RenderUTF8_Blended(font_, text.data(), constants::kColorBrown)};
   // the shorter a word is, the greater the horizontal padding
   const std::int32_t horiz_padding = (std::max(0, 10 - static_cast<int>(text.size()))) * 4 + kBtnH / 4;
   // the rectangle that the text will be in when 'pasted' onto the button

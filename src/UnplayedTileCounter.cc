@@ -61,7 +61,7 @@ UnplayedTileCounter::UnplayedTileCounter(SDL_Renderer* renderer, TTF_Font* count
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
   SDL_RenderClear(renderer);
   SDL_SetRenderTarget(renderer, all_tiles_.get());
-  SDL_SetRenderDrawColor(renderer, constants::kFontColorBrown.r, constants::kFontColorBrown.g, constants::kFontColorBrown.b, kBackgroundAlpha);
+  SDL_SetRenderDrawColor(renderer, constants::kColorBrown.r, constants::kColorBrown.g, constants::kColorBrown.b, kBackgroundAlpha);
   SDL_RenderClear(renderer);
   for(SDL_Rect tile_rect{0, 0, kTileW, kTileH }; auto [texture, counter] : std::views::zip(unique_textures, texts_)) {
     tile_rect.x = counter.x() - kRect.x -2; tile_rect.y = counter.y() - kRect.y;

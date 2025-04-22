@@ -14,10 +14,10 @@ constexpr std::int32_t kIdFontSize = 25;
 
 Scoreboard::Scoreboard(SDL_Renderer *renderer, const AssetPool& assets) :
   renderer_{renderer},
-  human_score_(renderer, assets.get(FontType::LOWBALL), kScoreFontSize, constants::kFontColorBeige, "000", kHumanScoreLocation),
-  computer_score_(renderer, assets.get(FontType::LOWBALL), kScoreFontSize, constants::kFontColorBeige, "000", kComputerScoreLocation),
-  player_id_(renderer, assets.get(FontType::MOULDY_CHEESE), kIdFontSize, constants::kFontColorBrown, "You", kHumanIdLocation),
-  computer_id_(renderer, assets.get(FontType::MOULDY_CHEESE), kIdFontSize, constants::kFontColorBrown, "Computer", kComputerIdLocation)
+  human_score_(renderer, assets.get(FontType::LOWBALL), kScoreFontSize, constants::kColorBeige, "000", kHumanScoreLocation),
+  computer_score_(renderer, assets.get(FontType::LOWBALL), kScoreFontSize, constants::kColorBeige, "000", kComputerScoreLocation),
+  player_id_(renderer, assets.get(FontType::MOULDY_CHEESE), kIdFontSize, constants::kColorBrown, "You", kHumanIdLocation),
+  computer_id_(renderer, assets.get(FontType::MOULDY_CHEESE), kIdFontSize, constants::kColorBrown, "Computer", kComputerIdLocation)
 {
   utility::log("Scoreboard initialized");
 }
@@ -30,7 +30,7 @@ void Scoreboard::add_score(Player player, std::int32_t amount) {
   value += amount;
   std::ostringstream ss;
   ss << std::setfill('0') << std::setw(3) << value;
-  text.update(renderer_, constants::kFontColorBeige, std::move(ss).str(), location);
+  text.update(renderer_, constants::kColorBeige, std::move(ss).str(), location);
 }
 
 void Scoreboard::render() const {

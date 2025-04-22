@@ -39,13 +39,13 @@ GameOver::GameOver(Playing &playing_state, const AssetPool &assets, ButtonMaker 
     Button{button_maker.make_text_button(Game::renderer(), "Quit", kQuitRect, &Game::pop_until<MainMenu>)}
   }, 
   texts_ {
-    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[GAME_OVER], constants::kFontColorBrown},
-    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[RESULT], constants::kFontColorBrown},
-    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[PLAYER_SCORE], constants::kFontColorBeige},
-    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[PLAYER_DIFFERENCE], constants::kFontColorBeige},
-    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[OPP_SCORE], constants::kFontColorBeige},
-    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[OPP_DIFFERENCE], constants::kFontColorBeige},
-    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[HINTS_USED], constants::kFontColorBeige}
+    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[GAME_OVER], constants::kColorBrown},
+    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[RESULT], constants::kColorBrown},
+    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[PLAYER_SCORE], constants::kColorBeige},
+    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[PLAYER_DIFFERENCE], constants::kColorBeige},
+    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[OPP_SCORE], constants::kColorBeige},
+    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[OPP_DIFFERENCE], constants::kColorBeige},
+    Text{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kFontSizes[HINTS_USED], constants::kColorBeige}
   },
   playing_state_{&playing_state}
 {

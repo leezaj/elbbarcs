@@ -13,7 +13,7 @@ constexpr std::uint8_t kPromptFontSize = 60;
 
 ConfirmationDialog::ConfirmationDialog(Playing& playing_state, const AssetPool& assets, ButtonMaker& button_maker) :
   dialog_box_{assets.get(TextureType::DIALOG_BOX)},
-  prompt_{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kPromptFontSize, constants::kFontColorBrown},
+  prompt_{Game::renderer(), assets.get(FontType::MOULDY_CHEESE), kPromptFontSize, constants::kColorBrown},
   buttons_{
     Button{button_maker.make_text_button(Game::renderer(), "Confirm", kConfirmButtonRect, []{})}, 
     Button{button_maker.make_text_button(Game::renderer(), "Decline", kDeclineButtonRect, &Game::pop_game_state)}
