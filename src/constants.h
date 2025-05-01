@@ -13,7 +13,7 @@ namespace constants {
 inline constexpr bool debug = true;
 #else
 inline constexpr bool debug = false;
-#endif
+#endif // NDEBUG
 
 inline constexpr const char* kGameName = "Elbbarcs";
 

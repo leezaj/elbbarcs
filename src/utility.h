@@ -135,9 +135,13 @@ concept all_same = (std::same_as<first_t<Ts...>, Ts> && ...);
 template <typename... Args>
 constexpr void log(impl::format_string fmt, const Args&... args) noexcept {
   if constexpr(constants::debug) {
+#ifndef __EMSCRIPTEN__ // TODO: remove once libc++ properly implements std::chrono::zoned_time
     std::chrono::zoned_time current_time{std::chrono::current_zone(), std::chrono::system_clock::now()};
-    std::println("[DEBUG] [{:%T}] {}:{} {}", 
+    std::println("[DEBUG] [{:%T}] {}:{} {}",
       current_time,
+#else
+    std::println("[DEBUG] {}:{} {}",
+#endif // ! __EMSCRIPTEN__
       impl::get_filename(fmt.sloc_.file_name()),
       fmt.sloc_.line(),
       std::vformat(fmt.str_, std::make_format_args(args...))

@@ -116,10 +116,10 @@ b_embed(${PROJECT_NAME} assets/templates/wood_button.webp)
 
 
 if(DEFINED EMSCRIPTEN)
-  target_compile_options(${PROJECT_NAME} PRIVATE  --use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx -flto)
-  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--use-port=sdl2 --use-port=sdl2_image:formats=png --use-port=sdl2_ttf --use-port=sdl2_gfx -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s WASM=1  --use-preload-cache -s EVAL_CTORS=2 -flto")
-  # debug linker flags
-  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_DEBUG "-g -sASSERTIONS=2 -sSTACK_OVERFLOW_CHECK=2 -fsanitize=undefined")
+  target_compile_options(${PROJECT_NAME} PRIVATE --use-port=sdl2 --use-port=sdl2_image:formats=webp --use-port=sdl2_ttf --use-port=sdl2_gfx)
+  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--use-port=sdl2 --use-port=sdl2_image:formats=webp --use-port=sdl2_ttf --use-port=sdl2_gfx -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sWASM=1 -sEVAL_CTORS=2")
+  #debug
+  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_DEBUG "-g -s SAFE_HEAP=1 -s ASSERTIONS=2 -s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined")
   set(CMAKE_EXECUTABLE_SUFFIX ".js")
 else()
   list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SDL2)

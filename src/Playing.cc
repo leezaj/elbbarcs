@@ -235,12 +235,9 @@ Texture Playing::get_snapshot(bool capture_rack) {
     rack_.render(Game::renderer());
     render_buttons(buttons_);
   } else {
-    auto no_rack_buttons = buttons_ |
-      std::views::enumerate |
-      std::views::filter([](auto&& pair) static {
-        return std::get<0>(pair) != SHUFFLE_OR_RECALL && std::get<0>(pair) != ENTER;
-      }) |
-      std::views::values;
+    auto no_rack_buttons = buttons_ | std::views::filter([this](const Button& button) {
+      return &button != &buttons_[SHUFFLE_OR_RECALL] && &button != &buttons_[ENTER];
+    });
     render_buttons(no_rack_buttons);
   }
   player_word_outliner_.render();
@@ -286,8 +283,8 @@ void Playing::play_opponent_turn() {
   assert(not board_.has_recently_placed_tiles());
   player_has_valid_placement_ = false;
   player_word_outliner_.set_hidden(true);
-  for(auto [index, button] : std::views::enumerate(buttons_)) {
-    if (index == SHUFFLE_OR_RECALL || index == RESTART) {
+  for(auto& button : buttons_) {
+    if (&button == &buttons_[SHUFFLE_OR_RECALL] || &button == &buttons_[RESTART]) {
       continue;
     }
     button.disable();
