@@ -33,7 +33,6 @@ CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23 CXX_EXTENSIONS False)
-set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unknown-warning-option -Wall -Wextra  -Werror -Wshadow
  -Wimplicit-fallthrough -Wconversion -Wsign-conversion -Wnon-virtual-dtor -Wold-style-cast -Wcast-align
 -Wunused -Wformat=2 -Woverloaded-virtual -Wmisleading-indentation -Wduplicated-cond -Wuseless-cast -Wduplicated-branches
@@ -45,8 +44,6 @@ if(COMPILER_SUPPORTS_MARCH_NATIVE)
 endif()
 
 if(NOT DEFINED EMSCRIPTEN)
-  #we need to do this, otherwise it complains about strings from our embedded binaries being too long
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wpedantic -pedantic) 
 endif()
 
 b_embed(${PROJECT_NAME} assets/dict.bin)
@@ -116,12 +113,16 @@ b_embed(${PROJECT_NAME} assets/templates/wood_button.webp)
 
 
 if(DEFINED EMSCRIPTEN)
+  set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/html")
   target_compile_options(${PROJECT_NAME} PRIVATE --use-port=sdl2 --use-port=sdl2_image:formats=webp --use-port=sdl2_ttf --use-port=sdl2_gfx)
-  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--use-port=sdl2 --use-port=sdl2_image:formats=webp --use-port=sdl2_ttf --use-port=sdl2_gfx -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sWASM=1 -sEVAL_CTORS=2")
+  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--use-port=sdl2 --use-port=sdl2_image:formats=webp --use-port=sdl2_ttf --use-port=sdl2_gfx -sWASM=1 -sEVAL_CTORS=2 -sFILESYSTEM=0 -sENVIRONMENT=web -sMINIMAL_RUNTIME_STREAMING_WASM_INSTANTIATION")
   #debug
-  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_DEBUG "-g -s SAFE_HEAP=1 -s ASSERTIONS=2 -s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined")
+  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_DEBUG "-g -sSAFE_HEAP=1 -sASSERTIONS=2 -sSTACK_OVERFLOW_CHECK=2 -fsanitize=undefined")
   set(CMAKE_EXECUTABLE_SUFFIX ".js")
 else()
+  # can't enable for emscripten since it complains about strings from our embedded files being too long
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wpedantic -pedantic) 
+  set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
   list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SDL2)
   find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
   find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)

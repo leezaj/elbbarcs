@@ -43,14 +43,13 @@ if needed.
 <summary> <h3> Build Instructions </h3> </summary>
 
 Elbbarcs has the following requirements and dependencies:
-- GCC 15 or Clang 20
-- CMake 3.5 or newer
+- GCC>=15 or Clang>=20
+- CMake>=3.5
 - SDL2, SDL2_ttf, SDL2_image and SDL2_gfx development headers
+
+The following libraries will automatically be fetched by CMake:
 - [Glaze](https://github.com/stephenberry/glaze) for serializing the dictionary structure
 - [My fork of battery-embed](https://github.com/leezaj/embed) for embedding assets directly into the game
-
-Elbbarcs also uses  for serialization, but this will automatically be
-fetched with CMake.
 
 1. Clone the repository with `git clone https://github.com/leezaj/elbbarcs.git`
 3. Run `cmake -DCMAKE_BUILD_TYPE=Release -B ./build`. This will pull Glaze and battery-embed due to CMake's
